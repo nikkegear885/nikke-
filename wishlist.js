@@ -8,6 +8,7 @@
   const STORAGE_KEY = 'nikke_wishlist_recommendations_v1';
   const EXCLUDED_STORAGE_KEY = 'nikke_wishlist_excluded_characters_v1';
   const FAVORITE_STORAGE_KEY = 'nikke_wishlist_favorite_characters_v1';
+  const SYNCED_OWNED_STORAGE_PREFIX = 'nikke_synced_owned_characters_v1_';
   const EXCLUDED_HELM_MIGRATED_KEY = 'nikke_wishlist_helm_conditional_migrated_v1';
   const IMAGE_URL = 'assets/nikke-pedia-master.json?v=1047';
   const norm = value => String(value == null ? '' : value)
@@ -980,9 +981,37 @@
     return false;
   }
 
+  let syncedOwnedRosterAccount = null;
+  let syncedOwnedRoster = null;
+  function refreshSyncedOwnedRoster(force=false){
+    const account = (typeof activeAccount !== 'undefined' && activeAccount != null)
+      ? String(activeAccount).trim()
+      : '';
+    if(!force && account === syncedOwnedRosterAccount) return syncedOwnedRoster;
+    syncedOwnedRosterAccount = account;
+    syncedOwnedRoster = null;
+    if(!account) return syncedOwnedRoster;
+    try{
+      const key = SYNCED_OWNED_STORAGE_PREFIX + encodeURIComponent(account);
+      const raw = localStorage.getItem(key);
+      if(raw !== null){
+        const saved = JSON.parse(raw);
+        if(Array.isArray(saved)){
+          syncedOwnedRoster = new Set(saved.map(norm).filter(Boolean));
+        }
+      }
+    }catch(_){}
+    return syncedOwnedRoster;
+  }
+
   function isMarkedUnowned(name){
-    // The active account's explicit unowned list is authoritative.
-    // Account rows can contain stale/local progress values that must not override the synced roster.
+    // Once an account has a synced roster, use it as the ownership source of truth.
+    // This prevents local RAW/legacy progress values from making unowned characters look owned.
+    try{
+      const syncedRoster = refreshSyncedOwnedRoster();
+      if(syncedRoster) return !syncedRoster.has(norm(name));
+    }catch(_){}
+    // Accounts without a synced roster retain the existing manually saved unowned status.
     try{
       if(typeof unownedCharacters !== 'undefined' && unownedCharacters){
         if(typeof unownedCharacters.has === 'function' && unownedCharacters.has(name)) return true;
@@ -991,7 +1020,6 @@
         }
       }
     }catch(_){}
-    // If there is no explicit unowned marker, the account row remains the fallback ownership signal.
     return false;
   }
 
@@ -1950,6 +1978,7 @@
   }
 
   function renderCharacterPicker(){
+    refreshSyncedOwnedRoster(true);
     if(!pickerCompany || !COMPANIES.includes(pickerCompany) || pickerSlot === null || !panel) return;
     const company = pickerCompany;
     const backdrop = panel.querySelector('[data-wl-picker-backdrop]');
@@ -2353,6 +2382,7 @@
   }
 
   function renderWishlist(){
+    refreshSyncedOwnedRoster(true);
     hideWishlistHoverCard();
     const activePanel = ensurePanel();
     if(!activePanel) return;
