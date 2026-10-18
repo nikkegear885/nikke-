@@ -2,9 +2,9 @@
 
 // @name         NIKKE Gear Manager - BlablaLink 자동 장비 동기화
 // @namespace    https://nikkegear885.github.io/nikke-/
-// @version      1.0.28
-// @updateURL    https://raw.githubusercontent.com/nikkegear885/nikke-/main/blablalink-sync-v1.0.28.user.js
-// @downloadURL  https://raw.githubusercontent.com/nikkegear885/nikke-/main/blablalink-sync-v1.0.28.user.js
+// @version      1.0.29
+// @updateURL    https://raw.githubusercontent.com/nikkegear885/nikke-/main/blablalink-sync-v1.0.29.user.js
+// @downloadURL  https://raw.githubusercontent.com/nikkegear885/nikke-/main/blablalink-sync-v1.0.29.user.js
 // @description  로그인된 BlablaLink 세션에서 NIKKE 캐릭터별 기업장비 현황을 NIKKE Gear Manager로 전송합니다.
 // @author       NIKKE Gear Manager
 // @match        https://*.blablalink.com/*
@@ -516,6 +516,15 @@
         : 'NIKKE Gear Manager: 장비 기업 정보를 조회 중… ('+codes.length+'명)');
       const details = await fetchDetails(codes);
       const {updates, unresolved} = makeUpdates(details);
+      // The normal character-list endpoint is the source of truth for ownership.
+      // In details-only fallback mode, the response contains only owned characters, so use details.
+      const rosterSource = detailsOnlyFallback ? details : chars;
+      const ownedNames = Array.from(new Set(rosterSource
+        .map(char => {
+          const code = String(char?.name_code ?? '');
+          return String(BUILTIN_NAME_CODES[code] || state.codeToName.get(code) || '').trim();
+        })
+        .filter(Boolean)));
       const actualCharacterCount = detailsOnlyFallback
         ? new Set(details.map(char => String(char?.name_code ?? '')).filter(Boolean)).size
         : codes.length;
@@ -530,6 +539,7 @@
             areaId:state.areaId,
             characterCount:actualCharacterCount,
             detailCount:details.length,
+            ownedNames,
             updates,
             unresolved
           }
