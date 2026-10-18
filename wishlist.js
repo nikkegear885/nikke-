@@ -1078,10 +1078,13 @@
       '#wishlist160WallControl .wl-copy-priority-heading{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:10px;color:#38465a;font-size:14px;font-weight:1000}',
       '#wishlist160WallControl .wl-copy-priority-value{padding:4px 8px;border:1px solid #cbd8e8;border-radius:999px;background:#edf4fc;color:#3e6797;font-size:11.5px;font-weight:900;white-space:nowrap}',
       '#wishlist160WallControl .wl-priority-slider-wrap{position:relative;width:100%;height:26px;margin:7px 0 0}',
-      '#wishlist160WallControl .wl-copy-priority-slider{position:absolute;left:0;right:0;top:3px;z-index:2;display:block;width:100%;height:23px;margin:0;accent-color:#668fda;cursor:pointer;-webkit-appearance:none;appearance:none;background:transparent}',
+      '#wishlist160WallControl .wl-copy-priority-slider{position:absolute;left:calc(16.6667% - 10.333px);right:auto;top:3px;z-index:2;display:block;width:calc(66.6667% + 20.667px);height:23px;margin:0;accent-color:#668fda;cursor:pointer;-webkit-appearance:none;appearance:none;background:transparent}',
       '#wishlist160WallControl .wl-priority-slider-segments{position:absolute;left:0;right:0;top:8px;z-index:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;height:12px;pointer-events:none}',
       '#wishlist160WallControl .wl-priority-slider-segments span{display:block;min-width:0;box-sizing:border-box;border:1px solid #aebfd2;border-radius:5px;background:linear-gradient(180deg,#f8fbff,#e1ebf6);box-shadow:inset 0 1px 0 rgba(255,255,255,.85);transition:background .12s,border-color .12s,box-shadow .12s}',
       '#wishlist160WallControl .wl-priority-slider-segments span.is-active{border-color:#347fba;background:linear-gradient(180deg,#c7e8ff,#8bc8f0);box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),0 0 0 1px rgba(52,127,186,.12)}',
+      '#wishlist160WallControl .wl-copy-slider-wrap.is-red-warning .wl-priority-slider-segments span.is-active{border-color:#d92d37;background:linear-gradient(180deg,#ffe0e2,#f3a0a7);box-shadow:inset 0 0 0 1px rgba(255,255,255,.45),0 0 0 1px rgba(217,45,55,.15)}',
+      '#wishlist160WallControl .wl-copy-slider-wrap.is-red-warning .wl-copy-priority-slider::-webkit-slider-thumb{background:#d92d37}',
+      '#wishlist160WallControl .wl-copy-slider-wrap.is-red-warning .wl-copy-priority-slider::-moz-range-thumb{background:#d92d37}',
       '#wishlist160WallControl .wl-copy-priority-slider::-webkit-slider-runnable-track{height:12px;border:0;background:transparent}',
       '#wishlist160WallControl .wl-copy-priority-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;margin-top:-3px;border:2px solid #fff;border-radius:50%;background:#4a8fc7;box-shadow:0 1px 4px rgba(28,66,102,.38);cursor:grab}',
       '#wishlist160WallControl .wl-copy-priority-slider:active::-webkit-slider-thumb{cursor:grabbing}',
@@ -1091,7 +1094,7 @@
       '#wishlist160WallControl .wl-priority-star{position:absolute;top:14.5px;z-index:6;display:flex;align-items:center;justify-content:center;width:22px;height:22px;box-sizing:border-box;border:1px solid #e5bb50;border-radius:50%;background:linear-gradient(180deg,#fffdf3,#ffefb9);color:#bd8611;font-family:Arial,sans-serif;font-size:12px;font-weight:900;line-height:1;transform:translate(-50%,-50%);pointer-events:none;box-shadow:0 1px 3px rgba(90,65,18,.18)}',
       '#wishlist160WallControl .wl-priority-star:after{display:none!important;pointer-events:none}',
 '#wishlist160WallControl .wl-priority-prohibit[hidden],#wishlist160WallControl .wl-copy-priority-warning[hidden],#wishlist160WallControl .wl-priority-info[hidden]{display:none!important}',
-'#wishlist160WallControl .wl-priority-prohibit{position:absolute;left:calc(5.5% - 6px);top:14.5px;z-index:5;display:flex;align-items:center;justify-content:center;width:18px;height:18px;box-sizing:border-box;border:2px solid #d92d37;border-radius:50%;background:linear-gradient(45deg,#fff 43%,#d92d37 44%,#d92d37 56%,#fff 57%);transform:translate(-50%,-50%);pointer-events:none;box-shadow:0 1px 3px rgba(90,20,20,.2)}',
+'#wishlist160WallControl .wl-priority-prohibit{position:absolute;left:calc(16.6667% - 1.333px);top:14.5px;z-index:5;display:flex;align-items:center;justify-content:center;width:18px;height:18px;box-sizing:border-box;border:2px solid #d92d37;border-radius:50%;background:linear-gradient(45deg,#fff 43%,#d92d37 44%,#d92d37 56%,#fff 57%);transform:translate(-50%,-50%);pointer-events:none;box-shadow:0 1px 3px rgba(90,20,20,.2)}',
 '#wishlist160WallControl .wl-copy-priority-warning{margin-top:6px;padding:7px 8px;border:1px solid #f0b8bd;border-radius:7px;background:#fff0f1;color:#c52632;font-size:8.3px;font-weight:900;line-height:1.45;text-align:center;white-space:pre-line}',
        '#wishlist160WallControl .wl-priority-info{margin-top:6px;padding:7px 8px;border:1px solid #b9d7f4;border-radius:7px;background:#eff7ff;color:#245b8f;font-size:8.3px;font-weight:850;line-height:1.45;text-align:center;white-space:pre-line}',
        'html.dark-theme #wishlist160WallControl .wl-priority-info{border-color:#345c85;background:#172d47;color:#c6e3ff}',
@@ -1477,7 +1480,7 @@
       '<div class="wl-priority-slider-wrap wl-pvp-slider-wrap">' +
          '<div class="wl-priority-slider-segments" aria-hidden="true"><span data-wl-pvp-step="0"></span><span data-wl-pvp-step="1"></span><span data-wl-pvp-step="2"></span></div>' +
          '<input class="wl-copy-priority-slider" data-wl-pvp-priority type="range" min="0" max="2" step="1" value="1" aria-label="PVP 캐릭터 선호도" />' +
-         '<span class="wl-priority-star" data-wl-pvp-star aria-hidden="true" style="left:5.5%">★</span>' +
+         '<span class="wl-priority-star" data-wl-pvp-star aria-hidden="true" style="left:16.6667%">★</span>' +
        '</div>' +
       '<div class="wl-copy-priority-ends wl-pvp-priority-ends"><span>PVP 우선</span><span>솔레 우선</span><span>PVP 제외</span></div>' +
        '<div class="wl-priority-info wl-pvp-priority-info" data-wl-pvp-info></div>' +
@@ -1487,7 +1490,7 @@
       '<div class="wl-priority-slider-wrap wl-copy-slider-wrap">' +
          '<div class="wl-priority-slider-segments" aria-hidden="true"><span data-wl-copy-step="0"></span><span data-wl-copy-step="1"></span><span data-wl-copy-step="2"></span></div>' +
          '<input class="wl-copy-priority-slider" data-wl-copy-priority type="range" min="0" max="2" step="1" value="0" aria-label="돌파 선호도" />' +
-         '<span class="wl-priority-star" data-wl-copy-star aria-hidden="true" style="left:94.5%">★</span>' +
+         '<span class="wl-priority-star" data-wl-copy-star aria-hidden="true" style="left:83.3333%">★</span>' +
           '<span class="wl-priority-prohibit" data-wl-copy-prohibit aria-hidden="true" hidden></span>' +
        '</div>' +
       '<div class="wl-copy-priority-ends" data-wl-copy-priority-ends><span data-wl-copy-priority-end="0">성능캐<br>돌파우선</span><span data-wl-copy-priority-end="1">균형</span><span data-wl-copy-priority-end="2">도감작<br>우선</span></div>' +
@@ -1568,7 +1571,7 @@
       segment.classList.toggle('is-active', Number(segment.getAttribute('data-wl-pvp-step')) === pvpStep);
     });
     const pvpStar = control.querySelector('[data-wl-pvp-star]');
-    if(pvpStar) pvpStar.style.left = 'calc(5.5% - 6px)';
+    if(pvpStar) pvpStar.style.left = 'calc(16.6667% - 1.333px)';
      const pvpInfo = control.querySelector('[data-wl-pvp-info]');
      if(pvpInfo) pvpInfo.textContent = PVP_PRIORITY_DESCRIPTIONS[pvpPriority] || PVP_PRIORITY_DESCRIPTIONS.solo;
     const pvpValueLabel = control.querySelector('[data-wl-pvp-priority-value]');
@@ -1579,7 +1582,9 @@
       segment.classList.toggle('is-active', Number(segment.getAttribute('data-wl-copy-step')) === copyPriority);
     });
     const copyStar = control.querySelector('[data-wl-copy-star]');
-    if(copyStar) copyStar.style.left = wallStatus === 'O' ? '50%' : 'calc(94.5% + 6px)';
+    if(copyStar) copyStar.style.left = wallStatus === 'O' ? '50%' : 'calc(83.3333% + 1.333px)';
+    const copySliderWrap = control.querySelector('.wl-copy-slider-wrap');
+    if(copySliderWrap) copySliderWrap.classList.toggle('is-red-warning', wallStatus === 'X' && copyPriority === 0);
     const copyProhibit = control.querySelector('[data-wl-copy-prohibit]');
     if(copyProhibit) copyProhibit.hidden = wallStatus !== 'X';
     const copyWarning = control.querySelector('[data-wl-copy-warning]');
