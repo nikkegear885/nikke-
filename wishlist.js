@@ -2345,19 +2345,8 @@
         return pilgrimPriorityIndex.get(norm(aName)) - pilgrimPriorityIndex.get(norm(bName));
       });
 
-    // Pilgrim first-copy recommendations use the account's explicit unowned marker as the source of truth.
-    // Profile stats can remain populated for a manually marked unowned character, so don't let stale stats override that marker.
-    const isPilgrimMarkedUnowned = name => {
-      try{
-        if(typeof unownedCharacters !== 'undefined' && unownedCharacters){
-          if(typeof unownedCharacters.has === 'function' && unownedCharacters.has(name)) return true;
-          for(const savedName of unownedCharacters){
-            if(norm(savedName) === norm(name)) return true;
-          }
-        }
-      }catch(_){}
-      return false;
-    };
+    // Use the same account-specific synced ownership source for Pilgrim as for every other company.
+    const isPilgrimMarkedUnowned = name => isMarkedUnowned(name);
 
     // Prefer missing first copies in priority order, then wrap to the top to fill remaining slots.
     // This prevents empty slots when fewer than five eligible unowned targets remain.
