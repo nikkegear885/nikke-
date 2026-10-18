@@ -1572,7 +1572,7 @@
     if(copyEnds){
       const end1 = copyEnds.querySelector('[data-wl-copy-priority-end="1"]');
       const end2 = copyEnds.querySelector('[data-wl-copy-priority-end="2"]');
-      if(end1) end1.textContent = wallStatus === 'X' ? '과금유저용' : '균형';
+      if(end1) end1.textContent = wallStatus === 'X' ? '' : '균형';
       if(end2) end2.innerHTML = wallStatus === 'X' ? '추천' : '도감작<br>우선';
     }
     const valueLabel = control.querySelector('[data-wl-copy-priority-value]');
