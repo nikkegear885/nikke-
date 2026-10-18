@@ -54,7 +54,7 @@
   }
 
   function regionLabel(areaId){
-    return ({'81':'JP','82':'NA','83':'KR','84':'Global','85':'SEA'})[String(areaId)] || ('지역 ' + String(areaId));
+    return ({'81':'일본 (JP)','82':'북미 (NA)','83':'한국 (KR)','84':'글로벌 (Global)','85':'동남아 (SEA)'})[String(areaId)] || ('지역 ' + String(areaId));
   }
 
   function injectStyle(){
@@ -103,6 +103,14 @@
       '.bl-direct-status{margin-top:10px;min-height:18px;font-size:10px;line-height:1.5}',
       '.bl-direct-status.success{color:#2e8765}',
       '.bl-direct-status.error{color:#bd5e62}',
+      '.bl-direct-region-picker{margin-top:12px;padding:11px;border:1px solid #d8b46e;border-radius:9px;background:#fff8e9}',
+      '.bl-direct-region-picker[hidden]{display:none!important}',
+      'html.dark-theme .bl-direct-region-picker{border-color:#755a2e;background:#2a2114}',
+      '.bl-direct-region-label{display:block;margin-bottom:6px;font-size:11px;font-weight:900}',
+      '.bl-direct-region-select{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #d5b46f;border-radius:7px;background:#fff;color:#493c24;font-size:12px;font-weight:800}',
+      'html.dark-theme .bl-direct-region-select{border-color:#755a2e;background:#121a29;color:#f2e2bd}',
+      '.bl-direct-region-hint{margin-top:6px;font-size:10px;line-height:1.45;color:#8a6b30}',
+      'html.dark-theme .bl-direct-region-hint{color:#d1b675}',
       '.bl-direct-actions{display:flex;gap:8px;margin-top:14px}',
       '.bl-direct-check{display:block;width:100%;margin-top:8px;padding:8px 10px;border:1px solid #8dc6ad;border-radius:8px;background:#effaf4;color:#247552;font-size:11px;font-weight:900;cursor:pointer}',
       '.bl-direct-check:hover:not(:disabled){background:#e0f5e9;border-color:#65ae8d}',
@@ -153,6 +161,11 @@
             '<button type="button" class="bl-direct-account" data-slot="1"><b id="blDirectA2">계정2</b><span>이 계정에 동기화</span></button>' +
           '</div>' +
           '<div style="margin-top:6px;font-size:10px;color:#71828f;text-align:center">계정명은 우측 톱니 아이콘을 눌러 변경가능합니다</div>' +
+          '<div class="bl-direct-region-picker" id="blDirectRegionPicker" hidden>' +
+            '<label class="bl-direct-region-label" for="blDirectRegionSelect">동기화할 NIKKE 지역 선택</label>' +
+            '<select class="bl-direct-region-select" id="blDirectRegionSelect"><option value="">지역 선택…</option></select>' +
+            '<div class="bl-direct-region-hint">같은 프로필에서 여러 지역의 로스터가 발견되었습니다. 실제로 플레이하는 지역을 선택해야 다른 서버의 보유·돌파·코강 정보가 섞이지 않습니다.</div>' +
+          '</div>' +
           '<div class="bl-direct-actions">' +
             '<button type="button" class="bl-direct-primary">동기화 시작</button>' +
             '<button type="button" class="bl-direct-secondary">닫기</button>' +
@@ -241,6 +254,15 @@
       }
     });
 
+    overlay.querySelector('#blDirectUrl').addEventListener('input', function(){
+      var picker = overlay.querySelector('#blDirectRegionPicker');
+      var select = overlay.querySelector('#blDirectRegionSelect');
+      var primary = overlay.querySelector('.bl-direct-primary');
+      if(picker) picker.hidden = true;
+      if(select) select.innerHTML = '<option value="">지역 선택…</option>';
+      if(primary) primary.textContent = '동기화 시작';
+    });
+
     overlay.querySelector('.bl-direct-primary').addEventListener('click', async function(){
       if(working) return;
 
@@ -248,9 +270,23 @@
       var status = overlay.querySelector('#blDirectStatus');
       var primary = overlay.querySelector('.bl-direct-primary');
       var card = overlay.querySelector('#blDirectProfile');
+      var regionPicker = overlay.querySelector('#blDirectRegionPicker');
+      var regionSelect = overlay.querySelector('#blDirectRegionSelect');
+      var requestedAreaId = null;
       var accounts = getAccounts();
 
       targetAccount = targetAccount || accounts[0] || '계정1';
+
+      if(regionPicker && !regionPicker.hidden){
+        var selectedAreaValue = regionSelect ? String(regionSelect.value || '').trim() : '';
+        if(!selectedAreaValue){
+          status.className = 'bl-direct-status error';
+          status.textContent = '여러 지역에서 로스터가 발견되었습니다. 동기화할 지역을 먼저 선택해 주세요.';
+          if(regionSelect) regionSelect.focus();
+          return;
+        }
+        requestedAreaId = Number(selectedAreaValue);
+      }
 
       var url;
       try{
@@ -271,13 +307,31 @@
         var response = await fetch(API + '/sync', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({profile_url:url}),
+          body: JSON.stringify(requestedAreaId === null ? {profile_url:url} : {profile_url:url,area_id:requestedAreaId}),
           cache: 'no-store',
           credentials: 'omit'
         });
 
         var payload = await response.json().catch(function(){ return {}; });
         if(!response.ok || payload.ok !== true){
+          if(payload.sync_type === 'multiple_rosters' && Array.isArray(payload.candidates) && payload.candidates.length > 1){
+            if(regionSelect){
+              regionSelect.innerHTML = '<option value="">지역 선택…</option>';
+              payload.candidates.forEach(function(candidate){
+                var areaId = Number(candidate && candidate.area_id);
+                if(![81,82,83,84,85].includes(areaId)) return;
+                var option = document.createElement('option');
+                option.value = String(areaId);
+                option.textContent = regionLabel(areaId) + ' · ' + String(Number(candidate.character_count)||0) + '명';
+                regionSelect.appendChild(option);
+              });
+            }
+            if(regionPicker) regionPicker.hidden = false;
+            primary.textContent = '선택한 지역으로 동기화';
+            status.className = 'bl-direct-status error';
+            status.textContent = '여러 지역에서 보유 니케가 확인되었습니다. 올바른 지역을 선택한 다음 아래 버튼을 다시 눌러 주세요.';
+            return;
+          }
           throw new Error(payload.message || 'BlaBlaLink 동기화에 실패했습니다.');
         }
 
@@ -308,8 +362,11 @@
 
         apply(payload, targetAccount);
 
+        if(regionPicker) regionPicker.hidden = true;
+        if(regionSelect) regionSelect.innerHTML = '<option value="">지역 선택…</option>';
+        primary.textContent = '동기화 시작';
         status.className = 'bl-direct-status success';
-        status.textContent = '동기화가 완료되었습니다.';
+        status.textContent = '동기화가 완료되었습니다. 지역: ' + regionLabel(payload.area_id) + '.';
       }catch(err){
         status.className = 'bl-direct-status error';
         status.textContent = text(err && err.message || err || '동기화에 실패했습니다.');
