@@ -2,3 +2,11 @@ name = "nikke-profile-verify"
 main = "cloudflare-worker.js"
 compatibility_date = "2026-10-05"
 workers_dev = true
+
+[[kv_namespaces]]
+binding = "SERVICE_SESSION_KV"
+id = "288644a46eb343aa9928ec7a70e342c0"
+
+# Daily service-session refresh at 03:00 UTC / 12:00 Korea time.
+[triggers]
+crons = ["0 3 * * *"]
