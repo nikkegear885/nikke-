@@ -2,8 +2,8 @@
 
 // @name         NIKKE Gear Manager - BlablaLink 자동 장비 동기화
 // @namespace    https://nikkegear885.github.io/nikke-/
-// @version      1.0.27
-// @updateURL    https://raw.githubusercontent.com/nikkegear885/nikke-/main/blablalink-sync-v1.0.27.user.js
+// @version      1.0.28
+// @updateURL    https://raw.githubusercontent.com/nikkegear885/nikke-/main/blablalink-sync-v1.0.28.user.js
 // @downloadURL  https://raw.githubusercontent.com/nikkegear885/nikke-/main/blablalink-sync-v1.0.27.user.js
 // @description  로그인된 BlablaLink 세션에서 NIKKE 캐릭터별 기업장비 현황을 NIKKE Gear Manager로 전송합니다.
 // @author       NIKKE Gear Manager
@@ -332,9 +332,14 @@
       ''
     );
     if(answer === null) throw new Error('지역 선택이 취소되었습니다. 동기화를 다시 실행하고 올바른 지역을 선택해 주세요.');
-    const value = String(answer).trim().toLowerCase();
-    const selected = candidates.find(a => String(a.id) === value || a.code.toLowerCase() === value);
-    if(!selected) throw new Error('선택한 지역을 확인하지 못했습니다. 목록에 표시된 지역 ID 또는 코드를 입력해 주세요.');
+    const normalizeRegionInput = value => String(value || '').trim().toLowerCase().replace(/[\\s()（）]/g, '');
+    const value = normalizeRegionInput(answer);
+    const selected = candidates.find(a => {
+      const labelWithoutCode = String(a.label || '').replace(/\\s*[（(][^）)]*[）)]\\s*/g, '').trim();
+      return [String(a.id), a.code, a.label, labelWithoutCode]
+        .some(candidate => normalizeRegionInput(candidate) === value);
+    });
+    if(!selected) throw new Error('선택한 지역을 확인하지 못했습니다. 지역 ID, 코드 또는 지역명(예: 83 / KR / 한국)을 입력해 주세요.');
     return selected;
   }
 
@@ -374,7 +379,7 @@
       return selected.characters;
     }
 
-    // 캐릭터 목록 API가 계속 모호하게 응답하면 상세 API로 유효한 지역을 보조 판별합니다.
+    // 캐릭터 목록 API가 계속 모호하게 응답하면 상세 API로 조회 가능한 지역을 판별합니다.
     const availableAreas = [];
     for(const area of NIKKE_AREAS){
       if(await probeAreaByDetails(area.id)) availableAreas.push(area);
@@ -386,13 +391,21 @@
 
     const selected = chooseNikkeArea(availableAreas);
     state.areaId = selected.id;
-    const selectedResponse = await requestCharactersForArea(selected.id);
-    if(String(selectedResponse?.code ?? '') !== '0'){
-      throw new Error(String(selectedResponse?.message || selectedResponse?.msg || '선택한 지역의 캐릭터 목록을 조회하지 못했습니다.'));
+
+    // 지역별 상세 API는 되지만 캐릭터 목록 API는 계속 모호하다고 응답하는 경우,
+    // 같은 캐릭터 목록 API를 재호출하면 같은 오류가 반복됩니다. 알려진 이름 코드를
+    // 상세 API에 직접 조회해 실제 보유 니케만 결과로 받습니다.
+    const allKnownCodes = Array.from(new Set([
+      ...Object.keys(BUILTIN_NAME_CODES),
+      ...state.codeToName.keys()
+    ])).filter(code => String(code || '').trim() !== '');
+    if(!allKnownCodes.length){
+      throw new Error('캐릭터 이름 코드 목록을 불러오지 못했습니다. BlablaLink 페이지가 완전히 열린 뒤 다시 시도해 주세요.');
     }
-    const characters = Array.isArray(selectedResponse?.data?.characters) ? selectedResponse.data.characters : [];
-    if(!characters.length) throw new Error(selected.label + ' 지역의 캐릭터 목록이 비어 있습니다. BlablaLink 계정의 지역을 확인해 주세요.');
-    return characters;
+    const fallbackCharacters = allKnownCodes.map(name_code => ({name_code}));
+    fallbackCharacters.__detailsOnlyFallback = true;
+    showStatus('지역 확인: ' + selected.label + ' · 상세 API로 보유 니케 조회', true);
+    return fallbackCharacters;
   }
 
   async function fetchDetails(codes){
@@ -487,8 +500,9 @@
       await delay(800);
 
       const chars = await fetchCharacters();
+      const detailsOnlyFallback = chars && chars.__detailsOnlyFallback === true;
       // 계정에 있는 전체 캐릭터 중 현재 사이트/내장 매핑으로 이름을 확인할 수 있는 캐릭터만 조회합니다.
-      // 새 캐릭터가 아직 사이트에 없더라도 동기화 자체가 "미매칭"으로 끝나지 않게 합니다.
+      // 상세 API 우회 모드에서는 알려진 이름 코드를 조회하고, 보유 니케만 상세 응답으로 추립니다.
       const codes = chars
         .map(x => x?.name_code)
         .filter(v => v !== undefined && v !== null && String(v).trim() !== '')
@@ -497,9 +511,14 @@
         .filter(code => Boolean(BUILTIN_NAME_CODES[code]) || Boolean(state.codeToName.get(code)));
       if(!codes.length) throw new Error('현재 사이트와 매칭되는 보유 캐릭터를 찾지 못했습니다. 동기화 스크립트가 최신 버전인지 확인하세요.');
 
-      showStatus('NIKKE Gear Manager: 장비 기업 정보를 조회 중… ('+codes.length+'명)');
+      showStatus(detailsOnlyFallback
+        ? 'NIKKE Gear Manager: 선택 지역의 보유 니케 상세 정보를 조회 중…'
+        : 'NIKKE Gear Manager: 장비 기업 정보를 조회 중… ('+codes.length+'명)');
       const details = await fetchDetails(codes);
       const {updates, unresolved} = makeUpdates(details);
+      const actualCharacterCount = detailsOnlyFallback
+        ? new Set(details.map(char => String(char?.name_code ?? '')).filter(Boolean)).size
+        : codes.length;
 
       if(sourceWindow && sourceWindow.postMessage){
         sourceWindow.postMessage({
@@ -509,7 +528,7 @@
             ok:true,
             nickname:state.nickname,
             areaId:state.areaId,
-            characterCount:codes.length,
+            characterCount:actualCharacterCount,
             detailCount:details.length,
             updates,
             unresolved
