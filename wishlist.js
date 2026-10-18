@@ -1475,7 +1475,7 @@
          '<span class="wl-priority-star" data-wl-copy-star aria-hidden="true" style="left:94.5%">★</span>' +
           '<span class="wl-priority-prohibit" data-wl-copy-prohibit aria-hidden="true" hidden></span>' +
        '</div>' +
-      '<div class="wl-copy-priority-ends"><span>성능캐<br>돌파우선</span><span>균형</span><span>도감작<br>우선</span></div>' +
+      '<div class="wl-copy-priority-ends" data-wl-copy-priority-ends><span data-wl-copy-priority-end="0">성능캐<br>돌파우선</span><span data-wl-copy-priority-end="1">균형</span><span data-wl-copy-priority-end="2">도감작<br>우선</span></div>' +
       
        '<div class="wl-copy-priority-warning" data-wl-copy-warning hidden>160벽 돌파여부가 X인 상태에서는\n추천하지 않는 설정입니다.</div>' +
         '<div class="wl-priority-info wl-copy-priority-info" data-wl-copy-info hidden></div>';
@@ -1568,8 +1568,18 @@
        copyInfo.textContent = copyInfoText;
        copyInfo.hidden = !copyInfoText || (wallStatus === 'X' && copyPriority === 0);
      }
+    const copyEnds = control.querySelector('[data-wl-copy-priority-ends]');
+    if(copyEnds){
+      const end1 = copyEnds.querySelector('[data-wl-copy-priority-end="1"]');
+      const end2 = copyEnds.querySelector('[data-wl-copy-priority-end="2"]');
+      if(end1) end1.textContent = wallStatus === 'X' ? '과금유저용' : '균형';
+      if(end2) end2.innerHTML = wallStatus === 'X' ? '추천' : '도감작<br>우선';
+    }
     const valueLabel = control.querySelector('[data-wl-copy-priority-value]');
-    if(valueLabel) valueLabel.textContent = COPY_PRIORITY_LABELS[copyPriority] || '성능캐 돌파우선';
+    const copyPriorityLabels = wallStatus === 'X'
+      ? ['성능캐 돌파우선','과금유저용','추천']
+      : COPY_PRIORITY_LABELS;
+    if(valueLabel) valueLabel.textContent = copyPriorityLabels[copyPriority] || '성능캐 돌파우선';
     const help = control.querySelector('[data-wl-copy-priority-help]');
     if(help){
       const description = copyInfoText || '160벽 돌파 못한 상태에선 추천하지 않는 설정입니다';
