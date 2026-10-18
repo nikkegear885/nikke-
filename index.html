@@ -4384,7 +4384,7 @@ html.dark-theme .name-cell-image{
 (function(){
   // Keep the visible build label in sync with the version embedded in this page.
   // Do not redirect/reload the page based on a separately cached VERSION file.
-  var EMBEDDED_VERSION='1.158';
+  var EMBEDDED_VERSION='1.159';
   function applyVersion(){
     var el=document.getElementById('siteVersionCorner');
     if(el) el.textContent='VERSION '+EMBEDDED_VERSION;
@@ -4547,8 +4547,27 @@ html.dark-theme #outpostPanel .outpost-core-level-row strong{color:#c8dcff}
  #outpostPanel .outpost-core-level-head{font-size:10px}
 }
 </style>
+<style id="sidebar-top-toggle-style-v001">
+#sidebarTopToggle{
+  position:fixed!important;left:5px!important;top:8px!important;z-index:100005!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;
+  margin:0!important;padding:0!important;box-sizing:border-box!important;
+  border:1px solid #d2dce7!important;border-radius:9px!important;
+  background:rgba(255,255,255,.97)!important;color:#526272!important;
+  box-shadow:0 2px 7px rgba(25,45,70,.12)!important;
+  font:700 18px/1 Arial,sans-serif!important;cursor:pointer!important;
+  -webkit-tap-highlight-color:transparent;
+}
+#sidebarTopToggle span{display:block!important;line-height:1!important;pointer-events:none!important}
+#sidebarTopToggle:hover{border-color:#9cb6ce!important;background:#f0f7fc!important;color:#345b7c!important}
+#sidebarTopToggle:focus-visible{outline:2px solid #6aa8e4!important;outline-offset:2px!important}
+#sidebarTopToggle[aria-expanded="true"]{border-color:#8fb4db!important;background:#eaf4fd!important;color:#2f648e!important}
+html.dark-theme #sidebarTopToggle{border-color:#40536a!important;background:rgba(22,32,49,.97)!important;color:#d0dced!important}
+html.dark-theme #sidebarTopToggle:hover,html.dark-theme #sidebarTopToggle[aria-expanded="true"]{border-color:#668bb5!important;background:#20334b!important;color:#dcedff!important}
+</style>
 </head><body>
-<div class="site-version-corner" id="siteVersionCorner">VERSION 1.158</div><div class="sidebar-hitarea" id="sidebarHitarea" aria-label="메뉴 열기" title="왼쪽 메뉴 열기"></div>
+<div class="site-version-corner" id="siteVersionCorner">VERSION 1.159</div><div class="sidebar-hitarea" id="sidebarHitarea" aria-label="메뉴 열기" title="왼쪽 메뉴 열기"></div><button type="button" id="sidebarTopToggle" aria-label="메뉴 열기" title="메뉴 열기" aria-expanded="false"><span aria-hidden="true">☰</span></button>
 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 <div class="app"><aside class="sidebar" id="sidebar"><div class="brand"><div class="logo"><img src="assets/nikke-manager-icon.webp?v=0438" alt="니케 장비관리 아이콘"></div><div><h1>니케 장비관리</h1></div></div><div class="nav"><button type="button" class="active main-view-nav" data-view="characters" onclick="switchMainView('characters')">니케 장비 현황</button><button type="button" class="main-view-nav" data-view="outpost" onclick="switchMainView('outpost')">전초기지 생산량</button><button type="button" class="main-view-nav" data-view="sole" onclick="switchMainView('sole')">솔레점수기록</button></div><div class="section" style="font-size:11px;color:#6f7b96;line-height:1.6">현재는 니케 관리 기능을 제공합니다.<br>다른 관리 기능은 설정 메뉴에서 사용할 수 있습니다.</div></aside>
 <main class="main"><div class="topbar"><div><div class="eyebrow">NIKKE / INVENTORY</div><h2 id="pageTitle">니케 장비현황</h2></div><div class="actions account-switcher"><button type="button" class="btn blsync-top-btn" onclick="openBlablalinkSyncGuide()"><svg class="sync-button-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.13-3.36L23 10M1 14l5.36 4.36A9 9 0 0 0 20.49 15"></path></svg><span>계정 동기화</span><svg class="sync-button-chevron" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></button><a href="https://gall.dcinside.com/mgallery/board/view?id=gov&no=5496829" id="siteHelpTopButton" class="bl-direct-site-help" target="_blank" rel="noopener noreferrer" aria-label="사이트 이용법 (새 탭에서 열기)" title="사이트 이용법 링크 열기">사이트 이용법</a><button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="어두운 화면으로 보기" title="어두운 화면으로 보기" onclick="toggleDarkTheme()">☀️</button><button type="button" class="btn account-switch-btn active" data-account="계정1" onclick="switchAccount(ACCOUNTS[0])">계정1</button><button type="button" class="btn account-switch-btn" data-account="계정2" onclick="switchAccount(ACCOUNTS[1])">계정2</button><div class="settings-wrap"><button type="button" class="settings-btn" id="settingsBtn" aria-label="설정" title="설정" onclick="toggleSettingsMenu(event)">⚙</button></div></div></div><div class="settings-popover" id="settingsPopover" hidden>
@@ -4614,6 +4633,7 @@ const ACCOUNT_SELECTION_PREFIX='nikke_character_selection_v2_';
 const LEGACY_ACCOUNT_SELECTION_PREFIX='nikke_character_selection_v1_';
 const ACCOUNT_UNUSED_PREFIX='nikke_unused_characters_v3_';
 const ACCOUNT_UNOWNED_PREFIX='nikke_unowned_characters_v1_';
+const TEST_ACCOUNT_NAME='랜덤 테스트 계정';
 const ACCOUNT_STATE_STORAGE='nikke_active_account_v1';
 const ACCOUNT_NAMES_STORAGE='nikke_account_names_v1';
 const DEFAULT_ACCOUNTS=['계정1','계정2'];
@@ -6447,9 +6467,120 @@ function saveAccountNames(){
   toast('계정 이름이 저장되었습니다.');
 }
 function updateAccountButtons(){document.querySelectorAll('.account-switch-btn').forEach((b,i)=>{b.dataset.account=ACCOUNTS[i]||'';b.textContent=ACCOUNTS[i]||'';b.classList.toggle('active',activeAccount===ACCOUNTS[i]);});}
+
+/* Wishlist-panel-only random account generator. No top-bar account switch button is created. */
+let randomTestPreviousVisibility=null;
+function enableRandomTestAccountVisibility(){
+  if(!randomTestPreviousVisibility){
+    randomTestPreviousVisibility={
+      hideUnused:completionFilters.hideUnused,
+      hideUnowned:completionFilters.hideUnowned
+    };
+  }
+  completionFilters.hideUnused=false;
+  completionFilters.hideUnowned=false;
+}
+function restoreRandomTestAccountVisibility(){
+  if(!randomTestPreviousVisibility)return;
+  completionFilters.hideUnused=randomTestPreviousVisibility.hideUnused;
+  completionFilters.hideUnowned=randomTestPreviousVisibility.hideUnowned;
+  randomTestPreviousVisibility=null;
+}
+function randomWeightedValue(options){
+  const total=options.reduce((sum,item)=>sum+item.weight,0);
+  let roll=Math.random()*total;
+  for(const item of options){
+    roll-=item.weight;
+    if(roll<0)return item.value;
+  }
+  return options[options.length-1].value;
+}
+function createRandomTestAccount(){
+  const storageKey=accountStorageKey(ACCOUNT_STORAGE_PREFIX,TEST_ACCOUNT_NAME);
+  let existing=null;
+  try{existing=localStorage.getItem(storageKey);}catch(e){}
+  if(existing&&!confirm('기존 랜덤 테스트 계정의 보유·돌파 정보를 새 무작위 데이터로 교체할까요?'))return;
+
+  save();
+  saveSelectedCharacters();
+  saveUnusedCharacters();
+
+  const mock=structuredClone(RAW);
+  const unownedNames=[];
+  const randomRules=window.NIKKE_RANDOM_ACCOUNT_RULES||{};
+  const clampRandomPercent=(value,fallback)=>Math.max(0,Math.min(100,Number.isFinite(Number(value))?Number(value):fallback));
+  const ownedChance=clampRandomPercent(randomRules.ownedChance,60)/100;
+  const configuredWeights=randomRules.breakthroughWeights||{zero:60,one:25,two:10,three:5};
+  const breakthroughOptions=[
+    {value:0,weight:Math.max(0,Number(configuredWeights.zero)||0)},
+    {value:1,weight:Math.max(0,Number(configuredWeights.one)||0)},
+    {value:2,weight:Math.max(0,Number(configuredWeights.two)||0)},
+    {value:3,weight:Math.max(0,Number(configuredWeights.three)||0)}
+  ];
+  if(!breakthroughOptions.some(item=>item.weight>0))breakthroughOptions[0].weight=100;
+  const parts=['머리','몸통','장갑','다리'];
+  let ownedCount=0;
+  mock.forEach(row=>{
+    const name=String(row&&row['이름']||'').trim();
+    if(!name)return;
+    const owned=Math.random()<ownedChance;
+    const breakthrough=owned?randomWeightedValue(breakthroughOptions):0;
+    if(!owned)unownedNames.push(name);
+    else ownedCount++;
+
+    row['돌파']=owned?breakthrough:0;
+    row['코강']=0;
+    row['전투력']=owned?Math.floor(35000+Math.random()*365000):0;
+    row['협투력']=owned?Math.floor(2500+Math.random()*50000):0;
+    row['호감도']=owned?Math.floor(Math.random()*41):0;
+    row['스킬1']=owned?Math.floor(Math.random()*11):0;
+    row['스킬2']=owned?Math.floor(Math.random()*11):0;
+    row['버스트스킬']=owned?Math.floor(Math.random()*11):0;
+    row['큐브']=null;
+    row['큐브_레벨']=0;
+    row['소장품']=null;
+    parts.forEach(part=>{
+      row[part+'_티어']=0;
+      row[part+'_레벨']=0;
+      row[part+'_옵1']=null;row[part+'_옵1값']=null;
+      row[part+'_옵2']=null;row[part+'_옵2값']=null;
+      row[part+'_옵3']=null;row[part+'_옵3값']=null;
+      row[part+'_기업장비']=false;
+    });
+  });
+
+  try{
+    localStorage.setItem(storageKey,JSON.stringify(mock));
+    localStorage.setItem(accountStorageKey(ACCOUNT_SELECTION_PREFIX,TEST_ACCOUNT_NAME),JSON.stringify([]));
+    localStorage.setItem(accountStorageKey(ACCOUNT_UNUSED_PREFIX,TEST_ACCOUNT_NAME),JSON.stringify([]));
+    localStorage.setItem(accountStorageKey(ACCOUNT_UNOWNED_PREFIX,TEST_ACCOUNT_NAME),JSON.stringify(unownedNames));
+  }catch(e){
+    alert('테스트 계정을 저장하지 못했습니다. 브라우저 저장 공간을 확인해 주세요.');
+    return;
+  }
+
+  if(activeAccount!==TEST_ACCOUNT_NAME){
+    switchAccount(TEST_ACCOUNT_NAME);
+  }else{
+    data=readAccountData(TEST_ACCOUNT_NAME);
+    selectedCharacters=loadAccountSelection(TEST_ACCOUNT_NAME);
+    unusedCharacters=loadAccountUnused(TEST_ACCOUNT_NAME);
+    unownedCharacters=loadAccountUnowned(TEST_ACCOUNT_NAME);
+    filters={선택:new Set(),이름:new Set(),기업:new Set(),속성:new Set(),클래스:new Set(),무기:new Set(),버스트:new Set(),큐브:new Set(),장비부위별:{머리:new Set(),몸통:new Set(),장갑:new Set(),다리:new Set()}};
+    renderHeader();renderTable();
+    updateUnusedViewButton();updateUnownedViewButton();updateCompletionFilterUI();updateDetailColumnButton();updateAccountButtons();
+  }
+  toast('랜덤 테스트 계정 생성 완료 · 보유 '+ownedCount+'명 / 미보유 '+unownedNames.length+'명');
+}
+window.createRandomTestAccount=createRandomTestAccount;
+
 function switchAccount(account){
   closeSettingsMenu();
-  if(!ACCOUNTS.includes(account)||account===activeAccount)return;
+  if((!ACCOUNTS.includes(account)&&account!==TEST_ACCOUNT_NAME)||account===activeAccount)return;
+  const enteringTest=account===TEST_ACCOUNT_NAME&&activeAccount!==TEST_ACCOUNT_NAME;
+  const leavingTest=activeAccount===TEST_ACCOUNT_NAME&&account!==TEST_ACCOUNT_NAME;
+  if(enteringTest)enableRandomTestAccountVisibility();
+  if(leavingTest)restoreRandomTestAccountVisibility();
   save();
   saveSelectedCharacters();
   saveUnusedCharacters();
@@ -6877,7 +7008,7 @@ html.dark-theme #outpostPanel .outpost-final-stage-btn{
   object-position:center;
   border-radius:50%;
 }
-</style><script src="profile-import-button.js?v=1.022"></script><script src="pedia.js?v=1047"></script><style id="character-image-column-v004">
+</style><script src="profile-import-button.js?v=1.022"></script><script src="pedia.js?v=1047"></script><script src="wishlist.js?v=2.95"></script><style id="character-image-column-v004">
 /* v1.013: 니케 사진을 이름과 분리된 고정 폭 열로 표시 */
 #characterPanel th[data-column-key="사진"],
 #characterPanel td.character-image-column-cell{
@@ -7281,6 +7412,59 @@ html.dark-theme .blsync-modal .blsync-help-link:hover,html.dark-theme .blsync-mo
       });
       observer.observe(document.body,{childList:true,subtree:true});
     }
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
+  else init();
+})();
+</script>
+
+<script id="sidebar-top-toggle-js-v001">
+(function(){
+  function init(){
+    const button=document.getElementById('sidebarTopToggle');
+    const sidebar=document.getElementById('sidebar');
+    if(!button||!sidebar||button.dataset.ready==='1')return;
+    button.dataset.ready='1';
+    function isOpen(){
+      return sidebar.classList.contains('open')||sidebar.classList.contains('sidebar-open')||document.body.classList.contains('sidebar-open');
+    }
+    function syncButton(){
+      const open=isOpen();
+      button.setAttribute('aria-expanded',open?'true':'false');
+      button.setAttribute('aria-label',open?'메뉴 닫기':'메뉴 열기');
+      button.title=open?'메뉴 닫기':'메뉴 열기';
+      const icon=button.querySelector('span');
+      if(icon)icon.textContent=open?'×':'☰';
+    }
+    button.addEventListener('click',function(event){
+      event.preventDefault();event.stopPropagation();
+      if(isOpen()){
+        if(typeof closeSidebar==='function')closeSidebar();
+        sidebar.classList.remove('sidebar-open','open');
+        document.body.classList.remove('sidebar-open');
+        const backdrop=document.getElementById('sidebarBackdrop');
+        const hitarea=document.getElementById('sidebarHitarea');
+        if(backdrop)backdrop.classList.remove('open');
+        if(hitarea)hitarea.classList.remove('open');
+        const sideTab=sidebar.querySelector('.sidebar-peek-tab');
+        if(sideTab){sideTab.textContent='›';sideTab.setAttribute('aria-label','메뉴 열기');}
+      }else{
+        if(typeof closeSettingsMenu==='function')closeSettingsMenu();
+        const hitarea=document.getElementById('sidebarHitarea');
+        if(hitarea)hitarea.click();
+        else{
+          sidebar.classList.add('open');
+          document.getElementById('sidebarBackdrop')?.classList.add('open');
+        }
+      }
+      syncButton();
+    });
+    const observer=new MutationObserver(syncButton);
+    observer.observe(sidebar,{attributes:true,attributeFilter:['class']});
+    observer.observe(document.body,{attributes:true,attributeFilter:['class']});
+    const hitarea=document.getElementById('sidebarHitarea');
+    if(hitarea)observer.observe(hitarea,{attributes:true,attributeFilter:['class']});
+    syncButton();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
