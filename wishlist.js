@@ -991,8 +991,21 @@
     syncedOwnedRosterAccount = account;
     syncedOwnedRoster = null;
     if(!account) return syncedOwnedRoster;
-    // Prefer the ownership flags carried by the currently loaded account rows.
-    // These flags come from the latest sync payload, not the general local ownership UI.
+    // The account-specific synced roster is the source of truth. Read it first so
+    // stale/manual/test flags on data rows can never override the profile synced to this account.
+    try{
+      const key = SYNCED_OWNED_STORAGE_PREFIX + encodeURIComponent(account);
+      const raw = localStorage.getItem(key);
+      if(raw !== null){
+        const saved = JSON.parse(raw);
+        if(Array.isArray(saved)){
+          syncedOwnedRoster = new Set(saved.map(norm).filter(Boolean));
+          return syncedOwnedRoster;
+        }
+      }
+    }catch(_){}
+    // Backward compatibility for an older synced account whose roster key was not saved,
+    // but whose account rows already contain the explicit sync marker.
     try{
       const accountRows = (typeof data !== 'undefined' && Array.isArray(data)) ? data : [];
       const hasSyncedFlags = accountRows.some(row => row && typeof row.__nikkeSyncedOwned === 'boolean');
@@ -1003,18 +1016,6 @@
             .map(row => norm(row['이름']))
             .filter(Boolean)
         );
-        return syncedOwnedRoster;
-      }
-    }catch(_){}
-    // Backward compatibility for synced accounts created before row-level flags were added.
-    try{
-      const key = SYNCED_OWNED_STORAGE_PREFIX + encodeURIComponent(account);
-      const raw = localStorage.getItem(key);
-      if(raw !== null){
-        const saved = JSON.parse(raw);
-        if(Array.isArray(saved)){
-          syncedOwnedRoster = new Set(saved.map(norm).filter(Boolean));
-        }
       }
     }catch(_){}
     return syncedOwnedRoster;
