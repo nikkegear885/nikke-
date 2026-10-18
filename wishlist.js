@@ -2286,13 +2286,13 @@
     });
 
     // Pilgrim follows the same independent rule for 160-wall O and X.
-    // PVP preference stage 1 uses the priority sequence only through the standard Snow White entry;
-    // stages 2 and 3 use the complete Pilgrim priority sequence.
+    // Copy preference stage 1 uses the priority sequence only through the standard Snow White entry;
+    // stages 2 and 3 use the complete Pilgrim priority sequence, independent of PVP preference.
     const pilgrimPriorityNames = getPilgrimWishlistPriorityNames();
-    const snowWhiteIndex = pvpPriority === 'pvp'
+    const snowWhiteIndex = copyPriority === 0
       ? pilgrimPriorityNames.findIndex(name => norm(name) === norm('스노우 화이트'))
       : -1;
-    const pilgrimTargetNames = pvpPriority === 'pvp' && snowWhiteIndex >= 0
+    const pilgrimTargetNames = copyPriority === 0 && snowWhiteIndex >= 0
       ? pilgrimPriorityNames.slice(0, snowWhiteIndex + 1)
       : pilgrimPriorityNames.slice();
     const pilgrimPriorityIndex = new Map(pilgrimTargetNames.map((name,index) => [norm(name),index]));
