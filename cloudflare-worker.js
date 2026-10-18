@@ -347,23 +347,197 @@ function getRawCorp(char, slot) {
 }
 
 
-function getServiceSession(env){
-  const gameToken = String(env?.BLABLALINK_GAME_TOKEN || '').trim();
-  const gameOpenId = String(env?.BLABLALINK_GAME_OPENID || '').trim();
-  const serviceIntlOpenId = String(env?.BLABLALINK_SERVICE_INTL_OPENID || '').trim();
+const SERVICE_SESSION_KV_KEY = 'blablalink-service-session-v1';
+const SERVICE_SESSION_FIELDS = Object.freeze([
+  ['gameToken','BLABLALINK_GAME_TOKEN'],
+  ['gameOpenId','BLABLALINK_GAME_OPENID'],
+  ['gameUid','BLABLALINK_GAME_UID'],
+  ['gameUserName','BLABLALINK_GAME_USER_NAME'],
+  ['gameAdultStatus','BLABLALINK_GAME_ADULT_STATUS'],
+  ['gameChannelId','BLABLALINK_GAME_CHANNELID'],
+  ['gameGameId','BLABLALINK_GAME_GAMEID']
+]);
+// BlaBlaLink may leave game_user_name blank; the renewal request can omit it.
+const SERVICE_SESSION_REQUIRED_FIELDS = SERVICE_SESSION_FIELDS.filter(([field]) => field !== 'gameUserName');
 
-  if(!gameToken || !gameOpenId || !serviceIntlOpenId){
-    const missing = [];
-    if(!gameToken) missing.push('BLABLALINK_GAME_TOKEN');
-    if(!gameOpenId) missing.push('BLABLALINK_GAME_OPENID');
-    if(!serviceIntlOpenId) missing.push('BLABLALINK_SERVICE_INTL_OPENID');
-    const err = new Error('서비스용 BlaBlaLink Secret이 부족합니다: ' + missing.join(', '));
+function makeServiceSessionFromSecrets(env){
+  const session = {
+    gameToken:String(env?.BLABLALINK_GAME_TOKEN || '').trim(),
+    gameOpenId:String(env?.BLABLALINK_GAME_OPENID || '').trim(),
+    gameUid:String(env?.BLABLALINK_GAME_UID || '').trim(),
+    gameUserName:String(env?.BLABLALINK_GAME_USER_NAME || '').trim(),
+    gameAdultStatus:String(env?.BLABLALINK_GAME_ADULT_STATUS || '').trim(),
+    gameChannelId:String(env?.BLABLALINK_GAME_CHANNELID || '').trim(),
+    gameGameId:String(env?.BLABLALINK_GAME_GAMEID || '').trim()
+  };
+  const missing = SERVICE_SESSION_REQUIRED_FIELDS
+    .filter(([field]) => !session[field])
+    .map(([,secret]) => secret);
+  if(missing.length){
+    const err = new Error('자동 세션 갱신에 필요한 Secret이 부족합니다: ' + missing.join(', '));
     err.sync_type = 'service_secret_missing';
     err.status = 503;
     throw err;
   }
+  return session;
+}
 
-  return {gameToken, gameOpenId, serviceIntlOpenId};
+async function getSeedSecretFingerprint(env){
+  const values = JSON.stringify(SERVICE_SESSION_FIELDS.map(([,secret]) => String(env?.[secret] || '').trim()));
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(values));
+  return Array.from(new Uint8Array(digest)).map(value => value.toString(16).padStart(2,'0')).join('');
+}
+
+async function getServiceSession(env){
+  if(!env?.SERVICE_SESSION_KV){
+    const err = new Error('자동 세션 갱신용 KV 저장소가 설정되지 않았습니다.');
+    err.sync_type = 'service_session_storage_missing';
+    err.status = 503;
+    throw err;
+  }
+  let saved = null;
+  try{
+    saved = await env.SERVICE_SESSION_KV.get(SERVICE_SESSION_KV_KEY, {type:'json'});
+  }catch(e){
+    const err = new Error('서비스 세션 저장소를 읽지 못했습니다.');
+    err.sync_type = 'service_session_storage_error';
+    err.status = 503;
+    throw err;
+  }
+
+  const fingerprint = await getSeedSecretFingerprint(env);
+  const savedMissing = saved && typeof saved === 'object' && !Array.isArray(saved)
+    ? SERVICE_SESSION_REQUIRED_FIELDS.filter(([field]) => !String(saved[field] || '').trim()).length > 0
+    : true;
+  if(saved && typeof saved === 'object' && !Array.isArray(saved) &&
+     !savedMissing && saved.seedFingerprint === fingerprint){
+    return saved;
+  }
+
+  // First use, invalid KV state, or manually updated Secrets after re-login: re-seed safely.
+  const initial = makeServiceSessionFromSecrets(env);
+  initial.seedFingerprint = fingerprint;
+  try{
+    await env.SERVICE_SESSION_KV.put(SERVICE_SESSION_KV_KEY, JSON.stringify(initial));
+  }catch(e){
+    const err = new Error('초기 서비스 세션을 저장하지 못했습니다.');
+    err.sync_type = 'service_session_storage_error';
+    err.status = 503;
+    throw err;
+  }
+  return initial;
+}
+
+function splitSetCookieHeader(value){
+  return String(value || '').split(/,\s*(?=game_[a-z0-9_]+=)/i).filter(Boolean);
+}
+
+function readUpdatedGameCookies(headers){
+  let setCookies = [];
+  try{
+    if(typeof headers?.getSetCookie === 'function') setCookies = headers.getSetCookie();
+  }catch(_){}
+  if(!setCookies.length){
+    let combined = '';
+    try{ combined = headers?.get('set-cookie') || ''; }catch(_){}
+    setCookies = splitSetCookieHeader(combined);
+  }
+  const updated = {};
+  setCookies.forEach(cookie => {
+    const pair = String(cookie || '').split(';',1)[0].trim();
+    const equals = pair.indexOf('=');
+    if(equals < 1) return;
+    const name = pair.slice(0,equals).trim();
+    const value = pair.slice(equals+1).trim();
+    if(name.startsWith('game_') && value) updated[name] = value;
+  });
+  return updated;
+}
+
+async function renewServiceSession(env, current){
+  const expireAt = Math.floor(Date.now()/1000) + 29*24*60*60;
+  const cookieValues = {
+    game_token:current.gameToken,
+    game_uid:current.gameUid,
+    game_openid:current.gameOpenId,
+    game_gameid:current.gameGameId,
+    game_channelid:current.gameChannelId,
+    game_user_name:current.gameUserName,
+    game_adult_status:current.gameAdultStatus
+  };
+  let response;
+  try{
+    response = await fetch('https://api.blablalink.com/api/user/Login', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Accept':'application/json, text/plain, */*',
+        'Origin':'https://www.blablalink.com',
+        'Referer':'https://www.blablalink.com/',
+        'X-Channel-Type':'2',
+        'X-Language':'en',
+        'Cookie':Object.entries(cookieValues)
+          .filter(([,value]) => String(value || '').trim())
+          .map(([name,value]) => name + '=' + value)
+          .join('; ')
+      },
+      body:JSON.stringify({
+        game_openid:current.gameOpenId,
+        game_channelid:Number(current.gameChannelId),
+        game_token:current.gameToken,
+        game_id:current.gameGameId || '29080',
+        game_expire_time:expireAt,
+        game_uid:current.gameUid,
+        ...(String(current.gameUserName || '').trim() ? {game_user_name:current.gameUserName} : {}),
+        game_adult_status:Number(current.gameAdultStatus)
+      })
+    });
+  }catch(e){
+    const err = new Error('BlaBlaLink 세션 자동 갱신 API에 연결하지 못했습니다.');
+    err.sync_type = 'service_session_refresh_network_error';
+    err.status = 502;
+    throw err;
+  }
+
+  let payload = {};
+  try{ payload = await response.json(); }catch(_){}
+  if(!response.ok || Number(payload?.code) !== 0){
+    const reason = String(payload?.message || payload?.msg || '').trim();
+    const err = new Error('BlaBlaLink 세션 자동 갱신에 실패했습니다.' + (reason ? ' (' + reason.slice(0,160) + ')' : ''));
+    err.sync_type = 'service_session_refresh_failed';
+    err.status = 502;
+    err.http_status = response.status;
+    err.code = Number.isFinite(Number(payload?.code)) ? Number(payload.code) : null;
+    throw err;
+  }
+
+  const updatedCookies = readUpdatedGameCookies(response.headers);
+  const next = {
+    ...current,
+    gameToken:updatedCookies.game_token || current.gameToken,
+    gameUid:updatedCookies.game_uid || current.gameUid,
+    gameOpenId:updatedCookies.game_openid || current.gameOpenId,
+    gameGameId:updatedCookies.game_gameid || current.gameGameId,
+    gameChannelId:updatedCookies.game_channelid || current.gameChannelId,
+    gameUserName:updatedCookies.game_user_name || current.gameUserName,
+    gameAdultStatus:updatedCookies.game_adult_status || current.gameAdultStatus
+  };
+  if(!updatedCookies.game_token){
+    const err = new Error('BlaBlaLink 갱신 API가 새 game_token 쿠키를 반환하지 않았습니다.');
+    err.sync_type = 'service_session_refresh_no_cookie';
+    err.status = 502;
+    throw err;
+  }
+
+  try{
+    await env.SERVICE_SESSION_KV.put(SERVICE_SESSION_KV_KEY, JSON.stringify(next));
+  }catch(e){
+    const err = new Error('갱신된 서비스 세션을 저장하지 못했습니다.');
+    err.sync_type = 'service_session_storage_error';
+    err.status = 503;
+    throw err;
+  }
+  return next;
 }
 
 function makeGameCommonParams(){
@@ -394,8 +568,8 @@ function makeGameHeaders(session){
     'Cookie':[
       'game_token=' + session.gameToken,
       'game_openid=' + session.gameOpenId,
-      'game_gameid=29080',
-      'game_channelid=6'
+      'game_gameid=' + (session.gameGameId || '29080'),
+      'game_channelid=' + (session.gameChannelId || '6')
     ].join('; ')
   };
 }
@@ -459,19 +633,37 @@ function extractIntlOpenId(decodedOpenId){
   return intlOpenId;
 }
 
-async function syncPublicNikkeProfile(profileUrl, env){
+async function syncPublicNikkeProfile(profileUrl, env, requestedAreaInput){
   const decoded = decodeOpenIdFromProfileUrl(profileUrl);
   const intlOpenId = extractIntlOpenId(decoded);
+
+  const requestedAreaId = requestedAreaInput == null || String(requestedAreaInput).trim() === ''
+    ? null
+    : Number(requestedAreaInput);
+  if(requestedAreaId !== null && (!Number.isInteger(requestedAreaId) || !NIKKE_AREAS.includes(requestedAreaId))){
+    const err = new Error('선택한 NIKKE 지역 ID가 올바르지 않습니다.');
+    err.sync_type = 'invalid_area_id';
+    err.status = 400;
+    throw err;
+  }
+  const areasToCheck = requestedAreaId === null ? NIKKE_AREAS : [requestedAreaId];
 
   // 공개 프로필 자체가 정상인지 먼저 확인합니다.
   const profile = await getProfile(profileUrl, decoded);
 
-  const session = getServiceSession(env);
+  let session = await getServiceSession(env);
+  // Refresh before each sync; if refresh is temporarily unavailable, try the current session once.
+  try{
+    session = await renewServiceSession(env, session);
+    console.log('[service-session] on-demand refresh succeeded');
+  }catch(refreshError){
+    console.warn('[service-session] on-demand refresh failed:', String(refreshError?.sync_type || 'refresh_error'));
+  }
 
   const areasChecked = [];
   const candidates = [];
 
-  for(const areaId of NIKKE_AREAS){
+  for(const areaId of areasToCheck){
     const result = await callNikkeGameApi(
       NIKKE_CHARACTERS_API,
       {
@@ -518,10 +710,15 @@ async function syncPublicNikkeProfile(profileUrl, env){
   }
 
   if(candidates.length === 0){
-    const err = new Error('공개 NIKKE 로스터를 조회할 수 있는 지역을 찾지 못했습니다.');
-    err.sync_type = 'no_public_roster';
+    const selectedCode = ({81:'JP',82:'NA',83:'KR',84:'Global',85:'SEA'})[requestedAreaId] || String(requestedAreaId || '');
+    const message = requestedAreaId === null
+      ? '공개 NIKKE 로스터를 조회할 수 있는 지역을 찾지 못했습니다.'
+      : '선택한 NIKKE 지역 ' + selectedCode + ' (' + requestedAreaId + ')에서 공개 로스터를 조회하지 못했습니다.';
+    const err = new Error(message);
+    err.sync_type = requestedAreaId === null ? 'no_public_roster' : 'selected_area_roster_missing';
     err.status = 404;
     err.areas_checked = areasChecked;
+    if(requestedAreaId !== null) err.area_id = requestedAreaId;
     throw err;
   }
 
@@ -813,6 +1010,72 @@ export default {
         });
       }
 
+      if(action === '/session-check'){
+        const profileUrl = String(body?.profile_url || '').trim();
+        if(!profileUrl){
+          return json({ok:false,sync_type:'missing_profile_url',message:'공개 BlaBlaLink 프로필 URL을 입력해 주세요.'}, 400);
+        }
+
+        try{
+          const decoded = decodeOpenIdFromProfileUrl(profileUrl);
+          const intlOpenId = extractIntlOpenId(decoded);
+          let session = await getServiceSession(env);
+
+          // Deliberately test both the renewal endpoint and a read-only NIKKE API call.
+          session = await renewServiceSession(env, session);
+          console.log('[service-session] preflight refresh succeeded');
+
+          const areasChecked = [];
+          for(const areaId of NIKKE_AREAS){
+            const result = await callNikkeGameApi(
+              NIKKE_CHARACTERS_API,
+              {intl_open_id:intlOpenId, nikke_area_id:areaId},
+              session
+            );
+            areasChecked.push({
+              area_id:areaId,
+              http_status:result.http_status,
+              code:Number.isFinite(result.code) ? result.code : null
+            });
+
+            if(result.code === BLABLALINK_INVALID_TOKEN_CODE){
+              console.warn('[service-session] preflight API rejected session token');
+              return json({
+                ok:false,
+                sync_type:'service_session_expired',
+                message:'갱신 요청은 성공했지만 NIKKE 데이터 API가 세션을 거부했습니다. 자동 갱신으로 인증 문제가 해결되지 않았습니다.',
+                areas_checked:areasChecked
+              }, 503);
+            }
+            if(result.code === 0){
+              console.log('[service-session] preflight API validation succeeded');
+              return json({
+                ok:true,
+                sync_type:'service_session_valid',
+                message:'세션 갱신과 NIKKE 데이터 API 인증이 모두 정상입니다. 계정 데이터는 변경하지 않았습니다.',
+                checked_area:areaId,
+                session_refreshed:true
+              }, 200);
+            }
+          }
+
+          return json({
+            ok:false,
+            sync_type:'session_check_inconclusive',
+            message:'세션 갱신은 성공했지만 NIKKE 데이터 API에서 조회 가능한 지역을 확인하지 못했습니다. 공개 프로필의 NIKKE 로스터 및 지역 설정을 확인해 주세요.',
+            areas_checked:areasChecked
+          }, 502);
+        }catch(e){
+          const status = Number.isInteger(e?.status) ? e.status : 502;
+          console.warn('[service-session] preflight failed:', String(e?.sync_type || 'session_check_error'));
+          return json({
+            ok:false,
+            sync_type:String(e?.sync_type || 'session_check_error'),
+            message:String(e?.message || '서비스 세션 사전 검사에 실패했습니다.')
+          }, status);
+        }
+      }
+
       if(action === '/sync'){
         const profileUrl = String(body?.profile_url || '').trim();
         if(!profileUrl){
@@ -824,7 +1087,7 @@ export default {
         }
 
         try{
-          const result = await syncPublicNikkeProfile(profileUrl, env);
+          const result = await syncPublicNikkeProfile(profileUrl, env, body?.area_id);
           return json(result, 200);
         }catch(e){
           const payload = {
@@ -894,5 +1157,18 @@ export default {
         message:String(e?.message || '프로필 인증 처리 중 오류가 발생했습니다.')
       }, 400);
     }
+  },
+
+  // Cloudflare Cron Trigger runs daily to renew the service session before it expires.
+  async scheduled(controller, env, ctx){
+    ctx.waitUntil((async()=>{
+      try{
+        const current = await getServiceSession(env);
+        await renewServiceSession(env, current);
+        console.log('[service-session] scheduled refresh succeeded');
+      }catch(error){
+        console.error('[service-session] scheduled refresh failed:', String(error?.sync_type || 'refresh_error'));
+      }
+    })());
   }
 };
