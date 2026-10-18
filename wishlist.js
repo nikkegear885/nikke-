@@ -1027,7 +1027,6 @@
       const syncedRoster = refreshSyncedOwnedRoster();
       if(syncedRoster) return !syncedRoster.has(norm(name));
     }catch(_){}
-    // Accounts without a synced roster retain the existing manually saved unowned status.
     try{
       if(typeof unownedCharacters !== 'undefined' && unownedCharacters){
         if(typeof unownedCharacters.has === 'function' && unownedCharacters.has(name)) return true;
@@ -1036,10 +1035,14 @@
         }
       }
     }catch(_){}
-    return false;
+    // No synced roster for this account means ownership is unknown.
+    // Never treat the site's embedded RAW snapshot as this user's roster on a new device.
+    return true;
   }
 
   function getBreakthrough(name){
+    // Breakthrough values from embedded/default data are not valid account state until synced.
+    if(!refreshSyncedOwnedRoster()) return 0;
     const row = findAccountRow(name);
     if(!row) return 0;
     const raw = row['돌파'];
@@ -1050,6 +1053,8 @@
   }
 
   function getCoreEnhancement(name){
+    // Likewise, don't display embedded/default core enhancement values before this account is synced.
+    if(!refreshSyncedOwnedRoster()) return 0;
     const row = findAccountRow(name);
     if(!row) return 0;
     const raw = row['코강'];
