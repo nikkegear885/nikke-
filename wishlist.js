@@ -2312,17 +2312,35 @@
         return pilgrimPriorityIndex.get(norm(aName)) - pilgrimPriorityIndex.get(norm(bName));
       });
 
-    // Restart at priority #1 only when every eligible character in the active priority pool is owned.
-    // The pool already excludes manual exclusions and core-enhancement-7 characters, including during restart.
-    // For PVP stage 1, that pool ends at Snow White; stages 2 and 3 require the full list to be owned.
-    const allPilgrimTargetsOwned = pilgrimPriorityRows.length > 0 &&
-      pilgrimPriorityRows.every(row => !isMarkedUnowned(String(row['이름'] || '').trim()));
-    const pilgrimCandidates = allPilgrimTargetsOwned
-      ? pilgrimPriorityRows
-      : pilgrimPriorityRows.filter(row => {
-          const name = String(row['이름'] || '').trim();
-          return isMarkedUnowned(name) && getCoreEnhancement(name) < 7;
-        });
+    // Pilgrim first-copy recommendations use the account's explicit unowned marker as the source of truth.
+    // Profile stats can remain populated for a manually marked unowned character, so don't let stale stats override that marker.
+    const isPilgrimMarkedUnowned = name => {
+      try{
+        if(typeof unownedCharacters !== 'undefined' && unownedCharacters){
+          if(typeof unownedCharacters.has === 'function' && unownedCharacters.has(name)) return true;
+          for(const savedName of unownedCharacters){
+            if(norm(savedName) === norm(name)) return true;
+          }
+        }
+      }catch(_){}
+      return false;
+    };
+
+    // Prefer missing first copies in priority order, then wrap to the top to fill remaining slots.
+    // This prevents empty slots when fewer than five eligible unowned targets remain.
+    const pilgrimCandidates = pilgrimPriorityRows.filter(row =>
+      isPilgrimMarkedUnowned(String(row['이름'] || '').trim())
+    );
+    const selectedPilgrimNames = new Set(pilgrimCandidates.map(row => norm(String(row['이름'] || '').trim())));
+    for(const row of pilgrimPriorityRows){
+      if(pilgrimCandidates.length >= 5) break;
+      const name = String(row['이름'] || '').trim();
+      const key = norm(name);
+      if(!selectedPilgrimNames.has(key)){
+        pilgrimCandidates.push(row);
+        selectedPilgrimNames.add(key);
+      }
+    }
 
     picks[PILGRIM_COMPANY] = pilgrimCandidates.slice(0,5).map(row => String(row['이름'] || '').trim());
     while(picks[PILGRIM_COMPANY].length < 5) picks[PILGRIM_COMPANY].push('');
