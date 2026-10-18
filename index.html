@@ -4910,7 +4910,7 @@ function applyBlablalinkSyncPayload(p,targetAccount){
   const syncedNames=new Set(
     rosterNames.map(name=>String(name??'').trim()).filter(Boolean)
   );
-  const normalizeRosterName=name=>String(name??'').normalize('NFKC').toLowerCase().replace(/[\\s:：·•._'’“”"\\-–—()\\[\\]{}]/g,'');
+  const normalizeRosterName=name=>String(name??'').normalize('NFKC').toLowerCase().replace(/[\s:：·•._'’“”"\-–—()\[\]{}]/g,'');
   const syncedNameKeys=new Set([...syncedNames].map(normalizeRosterName));
   const isSyncedOwnedName=name=>syncedNames.has(String(name??'').trim())||syncedNameKeys.has(normalizeRosterName(name));
 
