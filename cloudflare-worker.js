@@ -825,7 +825,15 @@ async function syncPublicNikkeProfile(profileUrl, env, requestedAreaInput){
           level:(equipLevel===undefined||equipLevel===null||equipLevel==='') ? null : Number(equipLevel)
         };
       }
-      updates.push({name,name_code:code,parts});
+      const gradeRaw = char?.grade;
+      const coreRaw = char?.core;
+      updates.push({
+        name,
+        name_code:code,
+        grade:(gradeRaw===undefined || gradeRaw===null || gradeRaw==='') ? null : Number(gradeRaw),
+        core:(coreRaw===undefined || coreRaw===null || coreRaw==='') ? null : Number(coreRaw),
+        parts
+      });
     }
   }
 
