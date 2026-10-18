@@ -981,18 +981,17 @@
   }
 
   function isMarkedUnowned(name){
-    // Saved progress is stronger evidence than a stale/incomplete unowned-name list.
-    if(hasOwnershipEvidence(findAccountRow(name))) return false;
+    // The active account's explicit unowned list is authoritative.
+    // Account rows can contain stale/local progress values that must not override the synced roster.
     try{
       if(typeof unownedCharacters !== 'undefined' && unownedCharacters){
-        if(typeof unownedCharacters.has === 'function'){
-          if(unownedCharacters.has(name)) return true;
-          for(const savedName of unownedCharacters){
-            if(norm(savedName) === norm(name)) return true;
-          }
+        if(typeof unownedCharacters.has === 'function' && unownedCharacters.has(name)) return true;
+        for(const savedName of unownedCharacters){
+          if(norm(savedName) === norm(name)) return true;
         }
       }
     }catch(_){}
+    // If there is no explicit unowned marker, the account row remains the fallback ownership signal.
     return false;
   }
 
