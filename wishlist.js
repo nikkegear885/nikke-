@@ -2301,7 +2301,10 @@
     const pilgrimPriorityRows = getCharactersForCompany(PILGRIM_COMPANY)
       .filter(row => {
         const name = String(row['이름'] || '').trim();
-        return pilgrimPriorityIndex.has(norm(name)) && !isManuallyExcludedCharacter(name);
+        // Keep the core-enhancement-7 exclusion active even when the all-owned cycle restarts.
+        return pilgrimPriorityIndex.has(norm(name)) &&
+          !isManuallyExcludedCharacter(name) &&
+          getCoreEnhancement(name) < 7;
       })
       .sort((a,b) => {
         const aName = String(a['이름'] || '').trim();
@@ -2309,7 +2312,8 @@
         return pilgrimPriorityIndex.get(norm(aName)) - pilgrimPriorityIndex.get(norm(bName));
       });
 
-    // Restart at priority #1 only when every character in the active priority pool is owned.
+    // Restart at priority #1 only when every eligible character in the active priority pool is owned.
+    // The pool already excludes manual exclusions and core-enhancement-7 characters, including during restart.
     // For PVP stage 1, that pool ends at Snow White; stages 2 and 3 require the full list to be owned.
     const allPilgrimTargetsOwned = pilgrimPriorityRows.length > 0 &&
       pilgrimPriorityRows.every(row => !isMarkedUnowned(String(row['이름'] || '').trim()));
