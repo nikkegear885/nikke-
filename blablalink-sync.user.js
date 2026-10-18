@@ -4,7 +4,7 @@
 // @namespace    https://nikkegear885.github.io/nikke-/
 // @version      1.0.28
 // @updateURL    https://raw.githubusercontent.com/nikkegear885/nikke-/main/blablalink-sync.user.js
-// @downloadURL  https://raw.githubusercontent.com/nikkegear885/nikke-/main/blablalink-sync-v1.0.27.user.js
+// @downloadURL  https://raw.githubusercontent.com/nikkegear885/nikke-/main/blablalink-sync.user.js
 // @description  로그인된 BlablaLink 세션에서 NIKKE 캐릭터별 기업장비 현황을 NIKKE Gear Manager로 전송합니다.
 // @author       NIKKE Gear Manager
 // @match        https://*.blablalink.com/*
