@@ -991,6 +991,22 @@
     syncedOwnedRosterAccount = account;
     syncedOwnedRoster = null;
     if(!account) return syncedOwnedRoster;
+    // Prefer the ownership flags carried by the currently loaded account rows.
+    // These flags come from the latest sync payload, not the general local ownership UI.
+    try{
+      const accountRows = (typeof data !== 'undefined' && Array.isArray(data)) ? data : [];
+      const hasSyncedFlags = accountRows.some(row => row && typeof row.__nikkeSyncedOwned === 'boolean');
+      if(hasSyncedFlags){
+        syncedOwnedRoster = new Set(
+          accountRows
+            .filter(row => row && row.__nikkeSyncedOwned === true)
+            .map(row => norm(row['이름']))
+            .filter(Boolean)
+        );
+        return syncedOwnedRoster;
+      }
+    }catch(_){}
+    // Backward compatibility for synced accounts created before row-level flags were added.
     try{
       const key = SYNCED_OWNED_STORAGE_PREFIX + encodeURIComponent(account);
       const raw = localStorage.getItem(key);
