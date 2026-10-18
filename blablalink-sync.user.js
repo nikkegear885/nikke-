@@ -2,7 +2,7 @@
 
 // @name         NIKKE Gear Manager - BlablaLink 자동 장비 동기화
 // @namespace    https://nikkegear885.github.io/nikke-/
-// @version      1.0.29
+// @version      1.0.30
 // @updateURL    https://raw.githubusercontent.com/nikkegear885/nikke-/main/blablalink-sync-v1.0.29.user.js
 // @downloadURL  https://raw.githubusercontent.com/nikkegear885/nikke-/main/blablalink-sync-v1.0.29.user.js
 // @description  로그인된 BlablaLink 세션에서 NIKKE 캐릭터별 기업장비 현황을 NIKKE Gear Manager로 전송합니다.
@@ -469,7 +469,15 @@
           level: (equipLevel===undefined||equipLevel===null||equipLevel==='') ? null : Number(equipLevel)
         };
       }
-      updates.push({name, name_code:code, parts});
+      const gradeRaw = char?.grade;
+      const coreRaw = char?.core;
+      updates.push({
+        name,
+        name_code:code,
+        grade:(gradeRaw===undefined || gradeRaw===null || gradeRaw==='') ? null : Number(gradeRaw),
+        core:(coreRaw===undefined || coreRaw===null || coreRaw==='') ? null : Number(coreRaw),
+        parts
+      });
     }
     return {updates, unresolved};
   }
