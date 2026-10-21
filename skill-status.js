@@ -562,7 +562,9 @@
     button.addEventListener('click', function () {
       if (typeof window.switchMainView === 'function') window.switchMainView('skillStatus');
     });
-    nav.appendChild(button);
+    const pediaButton = nav.querySelector('[data-view="pedia"]');
+    if (pediaButton) nav.insertBefore(button, pediaButton);
+    else nav.appendChild(button);
   }
 
   function installNavigation() {
