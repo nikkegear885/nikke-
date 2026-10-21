@@ -553,18 +553,32 @@
 
   function ensureNavFallback() {
     const nav = document.querySelector('.nav');
-    if (!nav || nav.querySelector('[data-view="skillStatus"]')) return;
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'main-view-nav';
-    button.dataset.view = 'skillStatus';
-    button.textContent = '니케 스킬현황';
-    button.addEventListener('click', function () {
-      if (typeof window.switchMainView === 'function') window.switchMainView('skillStatus');
-    });
+    if (!nav) return;
+
+    // Reuse an existing menu item and always place it immediately below equipment status.
+    let button = nav.querySelector('[data-view="skillStatus"]');
+    if (!button) {
+      button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'main-view-nav';
+      button.dataset.view = 'skillStatus';
+      button.textContent = '니케 스킬현황';
+      button.addEventListener('click', function () {
+        if (typeof window.switchMainView === 'function') window.switchMainView('skillStatus');
+      });
+    }
+
+    const charactersButton = nav.querySelector('[data-view="characters"]');
+    if (charactersButton) {
+      if (charactersButton.nextElementSibling !== button) {
+        nav.insertBefore(button, charactersButton.nextElementSibling);
+      }
+      return;
+    }
+
     const pediaButton = nav.querySelector('[data-view="pedia"]');
-    if (pediaButton) nav.insertBefore(button, pediaButton);
-    else nav.appendChild(button);
+    if (pediaButton && button !== pediaButton.previousElementSibling) nav.insertBefore(button, pediaButton);
+    else if (!button.parentNode) nav.appendChild(button);
   }
 
   function installNavigation() {
