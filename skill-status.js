@@ -221,7 +221,7 @@
     const panel = document.createElement('section');
     panel.id = PANEL_ID;
     panel.hidden = true;
-    panel.setAttribute('aria-label', '니케 스킬현황');
+    panel.setAttribute('aria-label', '니케 스킬 현황');
     panel.innerHTML =
       '<div class="skill-status-toolbar">' +
         '<label class="skill-status-filter-description" for="skillStatusFilterLevel">' +
@@ -539,7 +539,7 @@
       button.classList.toggle('active', button.dataset.view === 'skillStatus');
     });
     const title = document.getElementById('pageTitle');
-    if (title) title.textContent = '니케 스킬현황';
+    if (title) title.textContent = '니케 스킬 현황';
     renderSkillStatus();
     loadImages().then(renderSkillStatus);
     try { if (typeof closeSidebar === 'function') closeSidebar(); } catch (_) {}
@@ -562,7 +562,7 @@
       button.type = 'button';
       button.className = 'main-view-nav';
       button.dataset.view = 'skillStatus';
-      button.textContent = '니케 스킬현황';
+      button.textContent = '니케 스킬 현황';
       button.addEventListener('click', function () {
         if (typeof window.switchMainView === 'function') window.switchMainView('skillStatus');
       });
