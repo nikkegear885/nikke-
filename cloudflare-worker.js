@@ -610,6 +610,43 @@ async function callNikkeGameApi(api, body, session){
   };
 }
 
+// Recover once when BlaBlaLink explicitly rejects the service token.
+// Do not rotate the shared token on every sync: parallel users could otherwise
+// invalidate each other's just-refreshed session. The daily Cron remains the
+// normal refresh path; this is the on-demand recovery path.
+async function callNikkeGameApiWithSessionRecovery(api, body, env, session){
+  let result = await callNikkeGameApi(api, body, session);
+  if(result.code !== BLABLALINK_INVALID_TOKEN_CODE){
+    return {result, session};
+  }
+
+  let refreshed;
+  try{
+    refreshed = await renewServiceSession(env, session);
+    console.log('[service-session] invalid token; renewal succeeded, retrying NIKKE API');
+  }catch(refreshError){
+    const detail = String(refreshError?.message || '자동 세션 갱신에 실패했습니다.');
+    const err = new Error('NIKKE API가 서비스 세션을 거부했고 자동 갱신도 실패했습니다: ' + detail);
+    err.sync_type = 'service_session_refresh_failed';
+    err.status = 503;
+    err.code = result.code;
+    err.http_status = result.http_status;
+    err.refresh_sync_type = String(refreshError?.sync_type || 'refresh_error');
+    throw err;
+  }
+
+  result = await callNikkeGameApi(api, body, refreshed);
+  if(result.code === BLABLALINK_INVALID_TOKEN_CODE){
+    const err = new Error('세션 갱신 요청은 성공했지만 NIKKE API가 갱신된 세션도 거부했습니다. Cloudflare의 BLABLALINK_GAME_* Secret 값 또는 BlaBlaLink 서비스 계정 로그인 상태를 확인해야 합니다.');
+    err.sync_type = 'service_session_refresh_rejected';
+    err.status = 503;
+    err.code = result.code;
+    err.http_status = result.http_status;
+    throw err;
+  }
+  return {result, session:refreshed};
+}
+
 function extractIntlOpenId(decodedOpenId){
   const value = String(decodedOpenId || '').trim();
   const m = value.match(/^(\d+)-(\d+)$/);
@@ -753,27 +790,25 @@ async function syncPublicNikkeProfile(profileUrl, env, requestedAreaInput){
   // 공개 프로필 자체가 정상인지 먼저 확인합니다.
   const profile = await getProfile(profileUrl, decoded);
 
+  // Reuse the current KV session. Normal rotation is performed by the daily Cron;
+  // a rejected token triggers one refresh-and-retry below.
   let session = await getServiceSession(env);
-  // Refresh before each sync; if refresh is temporarily unavailable, try the current session once.
-  try{
-    session = await renewServiceSession(env, session);
-    console.log('[service-session] on-demand refresh succeeded');
-  }catch(refreshError){
-    console.warn('[service-session] on-demand refresh failed:', String(refreshError?.sync_type || 'refresh_error'));
-  }
 
   const areasChecked = [];
   const candidates = [];
 
   for(const areaId of areasToCheck){
-    const result = await callNikkeGameApi(
+    const recovered = await callNikkeGameApiWithSessionRecovery(
       NIKKE_CHARACTERS_API,
       {
         intl_open_id:intlOpenId,
         nikke_area_id:areaId
       },
+      env,
       session
     );
+    const result = recovered.result;
+    session = recovered.session;
 
     areasChecked.push({
       area_id:areaId,
@@ -860,15 +895,18 @@ async function syncPublicNikkeProfile(profileUrl, env, requestedAreaInput){
 
   for(let i=0;i<nameCodes.length;i+=NIKKE_DETAIL_BATCH_SIZE){
     const batch = nameCodes.slice(i, i + NIKKE_DETAIL_BATCH_SIZE);
-    const result = await callNikkeGameApi(
+    const recovered = await callNikkeGameApiWithSessionRecovery(
       NIKKE_DETAILS_API,
       {
         intl_open_id:intlOpenId,
         nikke_area_id:selected.area_id,
         name_codes:batch
       },
+      env,
       session
     );
+    const result = recovered.result;
+    session = recovered.session;
 
     if(result.code === BLABLALINK_INVALID_TOKEN_CODE){
       const err = new Error('서비스용 BlaBlaLink 세션이 조회 중 만료되었습니다.');
@@ -978,7 +1016,7 @@ async function syncPublicNikkeProfile(profileUrl, env, requestedAreaInput){
 
   return {
     ok:true,
-    worker_version:'skills-1.0.0',
+    worker_version:'session-renewal-1.1.0',
     intl_open_id:intlOpenId,
     area_id:selected.area_id,
     nickname:profile.username || '',
@@ -1076,7 +1114,7 @@ export default {
       }
       return json({
         ok:true,
-        worker_version:'skills-1.0.0',
+        worker_version:'session-renewal-1.1.0',
         skill_fields:['skill1','skill2','burstSkill'],
         deployed_check:true
       }, 200);
