@@ -7,6 +7,6 @@ workers_dev = true
 binding = "SERVICE_SESSION_KV"
 id = "288644a46eb343aa9928ec7a70e342c0"
 
-# Daily service-session refresh at 03:00 UTC / 12:00 Korea time.
+# Refresh the service session every 6 hours (UTC): 09:00, 15:00, 21:00, 03:00 Korea time.
 [triggers]
-crons = ["0 3 * * *"]
+crons = ["0 */6 * * *"]
