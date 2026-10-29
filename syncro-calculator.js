@@ -32,7 +32,7 @@
     return `${value("year")}-${value("month")}-${value("day")}`;
   };
   const defaults=()=>{
-    const initial=Object.assign(clone(SOURCE.defaults),{daily:clone(SOURCE.daily),packages:clone(SOURCE.packages),progressMode:"fixed",progressNormal:true,progressHard:true,normalStartChapter:0,normalStartStage:0,hardStartChapter:0,hardStartStage:0,});
+    const initial=Object.assign(clone(SOURCE.defaults),{daily:clone(SOURCE.daily),packages:clone(SOURCE.packages),progressNormal:true,progressHard:true,normalStartChapter:0,normalStartStage:0,hardStartChapter:0,hardStartStage:0,});
     // Use the current local Korean date for a fresh/reset calculator; preserve any saved date.
     initial.date=seoulTodayISO();
     initial.daily.forEach(row=>{row.on=true;});
@@ -56,7 +56,7 @@
     "일일 퍼펙트 부스트 팩",
     "월정액 2"
   ];
-  const editableKeys=new Set(["current","goal","outpost","sweep","date","subtractOwned","progressMode","progressNormal","progressHard","normalStartChapter","normalStartStage","hardStartChapter","hardStartStage"]);
+  const editableKeys=new Set(["current","goal","outpost","sweep","date","subtractOwned","progressNormal","progressHard","normalStartChapter","normalStartStage","hardStartChapter","hardStartStage"]);
   // Indexed by 1-based daily sweep count (first clear is free).
   // 1회=0, 2회=50, 3회=70, ... 11회=450 jewels per individual clear.
   const sweepJewelPrice=[0,0,50,70,100,150,200,250,300,350,400,450];
@@ -73,7 +73,6 @@
       }
       if(typeof saved.date==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(saved.date))state.date=saved.date;
       if(typeof saved.subtractOwned==="boolean")state.subtractOwned=saved.subtractOwned;
-      if(["fixed","progress"].includes(saved.progressMode))state.progressMode=saved.progressMode;
       if(typeof saved.progressNormal==="boolean")state.progressNormal=saved.progressNormal;
       if(typeof saved.progressHard==="boolean")state.progressHard=saved.progressHard;
       for(const key of ["normalStartChapter","normalStartStage","hardStartChapter","hardStartStage"]){
@@ -168,15 +167,6 @@
                 <label class="syn-field">시작 날짜<input type="date" data-key="date" value="${escape(state.date)}"></label>
               </div>
               <p id="syn-outpost-discrepancy" class="syn-outpost-discrepancy" role="alert" hidden></p>
-                <div class="syn-progress-options">
-                  <div class="syn-progress-modes">
-                    <span class="syn-progress-label">전초기지 생산량 계산 방식</span>
-                    <div class="syn-mode-buttons" role="group" aria-label="전초기지 생산량 계산 방식">
-                      <button type="button" data-progress-mode="fixed" class="${state.progressMode==="fixed"?"active":""}" aria-pressed="${state.progressMode==="fixed"}">전초기지레벨 고정 기준</button>
-                      <button type="button" data-progress-mode="progress" class="${state.progressMode==="progress"?"active":""}" aria-pressed="${state.progressMode==="progress"}">싱크로에 따른 전초기지 레벨 상승 임의 적용</button>
-                    </div>
-                  </div>
-                </div>
             </div>
           </section>
           <section class="syn-highlight syn-result-panel" aria-label="목표 달성 예상">
@@ -294,7 +284,7 @@
     const warning=el("syn-outpost-discrepancy");
     if(!warning)return;
     // The outpost level is always entered directly; use the milestone estimate only for this warning.
-    const manualUsed=state.progressMode==="progress"&&calculated.stageDerivedOutpost===null;
+    const manualUsed=calculated.stageDerivedOutpost===null;
     const reference=manualUsed?expectedOutpostForStart(calculated.level):null;
     const typed=Math.min(800,Math.max(1,Math.trunc(safe(state.outpost))));
     const gap=manualUsed?typed-reference:0;
@@ -304,7 +294,6 @@
       `입력한 전초기지 레벨이 싱크로 ${fmt(calculated.level)}레벨 기준 전초기지 예상치 ${fmt(reference)}레벨보다 50레벨 이상 높습니다.\n계산 결과에 오차가 생길 수 있습니다.\n전초기지 레벨과 싱크로 레벨이 정확하다면 이 경고는 무시해도 됩니다.`:"";
   }
   function buildProgressPlan(current,goal){
-    if(state.progressMode!=="progress")return [];
     const starts=getCampaignStarts(current);
     const results=[];
     for(const mode of ["normal","hard"]){
@@ -399,7 +388,7 @@
   }
   return {level,goal,outpost,rate,bands,total,owned,needed,daily,dailyRows,grants,reached,count,spent,completeDay,endOutpost:currentOutpost,dailyEnd,progressLog,events,levelReached,inputOutpost,stageDerivedOutpost};
 }
-  function calculate(onlyPackage=null,modeOverride=null){
+  function calculate(onlyPackage=null){
     // null: active selections; -1: free only; index: one package; array: selected package indices.
     const packages=onlyPackage===null?state.packages:state.packages.map((p,i)=>({
       ...p,on:Array.isArray(onlyPackage)?onlyPackage.includes(i):i===onlyPackage
@@ -407,8 +396,6 @@
     const level=Math.min(999,Math.max(1,Math.trunc(safe(state.current))));
     const goal=Math.min(1000,Math.max(2,Math.trunc(safe(state.goal))));
     const inputOutpost=Math.min(800,Math.max(1,Math.trunc(safe(state.outpost))));
-    const isProgress=(modeOverride||state.progressMode)==="progress";
-    const starts=isProgress?getCampaignStarts(level):null;
     const stageDerivedOutpost=null;
     // Manual starting outpost is independent of the campaign level estimate.
     const outpost=inputOutpost;
@@ -442,37 +429,7 @@
         endOutpost:outpost,dailyEnd:daily,progressLog:[],events:[],levelReached:level,
         inputOutpost,stageDerivedOutpost,invalidGoal:true};
     }
-    if(isProgress)return simulateProgress({level,goal,outpost,rate,bands,total,owned,needed,daily,dailyRows,grants,packages,inputOutpost,stageDerivedOutpost});
-    const reached=[null,null,null],acc=[0,0,0],count=packages.map(()=>0);
-    let spent=0,completeDay=null,subExpiry=0;
-    for(let day=1;day<=1500;day++){
-      const previousReached=acc.map((n,j)=>n>=needed[j]);
-      const when=dateByDay(state.date,day);
-      const weekday=when.getUTCDay()||7, monthDay=when.getUTCDate();
-      let subToday=false;
-      for(let k=0;k<packages.length;k++){
-        const p=packages[k], gr=grants[k];if(!p.on)continue;
-        const relevant=gr.some((v,j)=>v>0&&!previousReached[j]);
-        if(p.cycle==="월정액"){
-          if(relevant && day>subExpiry){
-            count[k]++;spent+=safe(p.price);subExpiry=day+Math.max(1,Math.trunc(safe(state.subscriptionDays)))-1;
-          }
-          if(day<=subExpiry)subToday=true;
-          continue;
-        }
-        if(!relevant)continue;
-        const scheduled=p.cycle==="일일"||
-          p.cycle==="주간"&&weekday===safe(state.weeklyDay)||
-          p.cycle==="월간"&&monthDay===safe(state.monthlyDay);
-        if(scheduled){
-          count[k]++;spent+=safe(p.price);for(let j=0;j<3;j++)acc[j]+=gr[j];
-        }
-      }
-      for(let j=0;j<3;j++)acc[j]+=daily[j]+(subToday?grants[8][j]:0);
-      for(let j=0;j<3;j++)if(reached[j]===null && acc[j]>=needed[j]-1e-7)reached[j]=day;
-      if(reached.every(d=>d!==null)){completeDay=day;break;}
-    }
-    return {level,goal,outpost,rate,bands,total,owned,needed,daily,dailyRows,grants,reached,count,spent,completeDay,endOutpost:outpost,dailyEnd:daily,progressLog:[],events:[],levelReached:completeDay===null?level:goal};
+    return simulateProgress({level,goal,outpost,rate,bands,total,owned,needed,daily,dailyRows,grants,packages,inputOutpost,stageDerivedOutpost});
   }
   function el(id){return document.getElementById(id);}
   // The global target date is determined by the slowest of three resources.
@@ -544,19 +501,11 @@
     return free;
   }
   function updateProgressOverview(c){
-  const panel=el("syn-progress-overview"),choices=el("syn-progress-choices");
-  if(choices)choices.hidden=state.progressMode!=="progress";
-  if(!panel)return;
-  panel.hidden=state.progressMode!=="progress";
-  if(panel.hidden)return;
-  const fixed=calculate(null,"fixed");
-  const delta=fixed.completeDay!==null&&c.completeDay!==null?fixed.completeDay-c.completeDay:null;
-  const deltaText=delta===null?"산정 불가":delta>=0?`${fmt(delta)}일 단축`:`${fmt(-delta)}일 증가`;
+  const panel=el("syn-progress-overview");
+  if(!panel||panel.hidden)return;
   el("syn-progress-stats").innerHTML=`
-    <div class="syn-progress-stat"><span>시작 전초기지</span><strong>Lv.${fmt(c.outpost)}${c.stageDerivedOutpost!==null?" (진행 위치 기준)":""}</strong></div>
-    <div class="syn-progress-stat"><span>예상 최종 전초기지</span><strong>Lv.${fmt(c.endOutpost)} (+${fmt(c.endOutpost-c.outpost)})</strong></div>
-    <div class="syn-progress-stat"><span>고정 방식 예상</span><strong>${fixed.completeDay===null?"1,500일 내 미도달":fmt(fixed.completeDay)+"일"}</strong></div>
-    <div class="syn-progress-stat"><span>고정 방식 대비</span><strong>${deltaText}</strong></div>`;
+    <div class="syn-progress-stat"><span>시작 전초기지</span><strong>Lv.${fmt(c.outpost)}</strong></div>
+    <div class="syn-progress-stat"><span>예상 최종 전초기지</span><strong>Lv.${fmt(c.endOutpost)} (+${fmt(c.endOutpost-c.outpost)})</strong></div>`;
   const next=c.events.find(m=>m.requiredLevel>c.level);
   const nextStatus=el("syn-progress-next");
   if(nextStatus){
@@ -571,11 +520,6 @@
   }).join(""):'<tr><td colspan="7">선택한 싱크로 구간에 적용되는 기준이 없습니다.</td></tr>';
 }
   function update(){
-    root.querySelectorAll("[data-progress-mode]").forEach(button=>{
-      const active=button.dataset.progressMode===state.progressMode;
-      button.classList.toggle("active",active);
-      button.setAttribute("aria-pressed",String(active));
-    });
     const c=calculate();
     const outpostInput=root.querySelector('input[data-key="outpost"]');
     if(outpostInput){
@@ -633,7 +577,7 @@
       c.completeDay===null?"1,500일 내 목표 미도달 · 목표 달성 비용 산정 불가":
       "활성화된 패키지 구매 기준 · 목표 달성까지 합산";
     const endRate=SOURCE.rates[c.endOutpost-1];
-    el("syn-hourly").textContent=state.progressMode==="progress"?`시작 전초기지 Lv.${c.outpost} (시간당 코더 ${fmt(c.rate[0],2)}) → 예상 최종 Lv.${c.endOutpost} (시간당 코더 ${fmt(endRate[0],2)}) · 보유 상자는 시작 시점 생산량 적용`:`전초기지 ${c.outpost}레벨 · 시간당 코더 ${fmt(c.rate[0],2)}, 배데 ${fmt(c.rate[1],2)}, 크레딧 ${fmt(c.rate[2],2)}`;
+    el("syn-hourly").textContent=`시작 전초기지 Lv.${c.outpost} (시간당 코더 ${fmt(c.rate[0],2)}) → 예상 최종 Lv.${c.endOutpost} (시간당 코더 ${fmt(endRate[0],2)}) · 보유 상자는 시작 시점 생산량 적용`;
     const finiteGoalDays=c.reached.filter(day=>Number.isFinite(day));
     const latestGoalDay=finiteGoalDays.length?Math.max(...finiteGoalDays):null;
     const hasUnreachedResource=c.reached.some(day=>day===null);
@@ -647,7 +591,7 @@
         <div class="metric"><span>소요 기간</span><strong>${c.reached[j]===null?"미도달":fmt(c.reached[j])+"일"}</strong></div>
         <div class="metric"><span>총 필요 재화</span><strong>${fmt(c.total[j])}</strong></div>
         <div class="metric"><span>보유 차감 후</span><strong>${fmt(c.needed[j])}</strong></div>
-        <div class="metric"><span>일일 기본 수급</span><strong>${state.progressMode==="progress"?fmt(c.daily[j])+" → "+fmt(c.dailyEnd[j]):fmt(c.daily[j])}</strong></div>
+        <div class="metric"><span>일일 기본 수급</span><strong>${fmt(c.daily[j])+" → "+fmt(c.dailyEnd[j])}</strong></div>
         <div class="syn-progress-caption"><span>보유 재화 충족률</span><strong>${fmt(ratio,1)}%</strong></div>
         <div class="syn-bar" role="progressbar" aria-label="${name} 보유 재화 충족률" aria-valuenow="${Math.round(ratio)}" aria-valuemin="0" aria-valuemax="100"><span style="width:${Math.max(0,ratio)}%"></span></div>
       </article>`;
@@ -668,7 +612,7 @@
     if(x.dataset.key){
       const k=x.dataset.key;
       if(!editableKeys.has(k))return;
-      state[k]=x.type==="checkbox"?Boolean(x.checked):(x.type==="date"||k==="progressMode")?x.value:safe(x.value);
+      state[k]=x.type==="checkbox"?Boolean(x.checked):x.type==="date"?x.value:safe(x.value);
       if(["current","goal"].includes(k))state[k]=Math.trunc(state[k]);
     }else if(x.dataset.ownedBox!==undefined){
       const j=Number(x.dataset.ownedBox),duration=Number(x.dataset.duration);
@@ -705,17 +649,6 @@
   root.addEventListener("input",onEdit);
   root.addEventListener("change",onEdit);
   root.addEventListener("click",e=>{
-    const modeButton=e.target.closest("button[data-progress-mode]");
-    if(modeButton){
-      const mode=modeButton.dataset.progressMode;
-      if(!["fixed","progress"].includes(mode))return;
-      if(state.progressMode!==mode){
-        state.progressMode=mode;
-        try{localStorage.setItem(storageKey,JSON.stringify(state));}catch(e){}
-        update();
-      }
-      return;
-    }
     const bulk=e.target.closest("[data-bulk-target][data-bulk-set]");
     if(bulk){
       const target=bulk.dataset.bulkTarget,checked=bulk.dataset.bulkSet==="all";
