@@ -1,0 +1,866 @@
+@font-face{font-family:'Pretendard';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Regular.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Pretendard';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Medium.woff2') format('woff2');font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:'Pretendard';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-SemiBold.woff2') format('woff2');font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:'Pretendard';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Bold.woff2') format('woff2');font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:'Pretendard';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-ExtraBold.woff2') format('woff2');font-weight:800;font-style:normal;font-display:swap}
+@font-face{font-family:'Pretendard';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Black.woff2') format('woff2');font-weight:900;font-style:normal;font-display:swap}
+/* NIKKE Gear Manager TEST - synchro calculator, theme matched to host */
+:root{
+  color-scheme:light;
+  --sy-bg:#eaf3fa;
+  --sy-card:#f7fbff;
+  --sy-card-alt:#edf5fc;
+  --sy-head:#deebf6;
+  --sy-line:#b8d0e1;
+  --sy-muted:#526e85;
+  --sy-text:#243c50;
+  --sy-title:#224d70;
+  --sy-accent:#4577b0;
+  --sy-accent-contrast:#fff;
+  --sy-green:#267c6f;
+  --sy-blue:#2b648f;
+  --sy-field:#fff;
+  --sy-field-border:#a3c0d7;
+  --sy-field-text:#223d51;
+  --sy-summary:#e3f1fc;
+  --sy-summary-border:#a4c7e2;
+  --sy-bar-bg:#c9dae9;
+  --sy-bar-fill:#5488c6;
+  --sy-status:#e4f2fb;
+  --sy-warn-bg:#fff3df;
+  --sy-warn-color:#845b1e;
+}
+html.dark-theme{
+  color-scheme:dark;
+  --sy-bg:#0a101c;
+  --sy-card:#101a2d;
+  --sy-card-alt:#142138;
+  --sy-head:#1a2740;
+  --sy-line:#2c3d58;
+  --sy-muted:#a3b5ce;
+  --sy-text:#e5edfa;
+  --sy-title:#d4e8ff;
+  --sy-accent:#a38bff;
+  --sy-accent-contrast:#100d21;
+  --sy-green:#75dbc1;
+  --sy-blue:#91c8ff;
+  --sy-field:#0c1627;
+  --sy-field-border:#536783;
+  --sy-field-text:#f2f6ff;
+  --sy-summary:#191e39;
+  --sy-summary-border:#5a5987;
+  --sy-bar-bg:#30405c;
+  --sy-bar-fill:#a68dff;
+  --sy-status:#152943;
+  --sy-warn-bg:#332a21;
+  --sy-warn-color:#ffd998;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:0;background:var(--sy-bg);color:var(--sy-text)}
+body{font:15px/1.52 'Pretendard',Arial,"Noto Sans KR",sans-serif}
+button,input,select{font:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid var(--sy-accent);outline-offset:2px}
+.syn-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.syn-wrap{max-width:1480px;margin:0 auto;padding:10px 12px 30px}
+.syn-utility{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:9px;margin:0 0 12px;padding:0 2px}
+.syn-utility-note{color:var(--sy-muted);font-size:13px}
+.syn-actions{display:flex;align-items:center;gap:9px}
+.syn-btn{min-height:35px;border:1px solid var(--sy-field-border);background:var(--sy-card);color:var(--sy-title);border-radius:8px;padding:7px 13px;font-size:13px;font-weight:800}
+.syn-btn:hover{border-color:var(--sy-accent);background:var(--sy-card-alt)}
+.syn-note{color:var(--sy-muted);font-size:13px}
+.syn-box{margin:0 0 16px;border:1px solid var(--sy-line);border-radius:12px;background:var(--sy-card);overflow:hidden}
+.syn-box-head,.syn-box>summary{padding:13px 17px;background:var(--sy-head);font-size:16px;font-weight:900;color:var(--sy-title);list-style:none}
+.syn-box>summary{cursor:pointer;user-select:none}
+.syn-box>summary::-webkit-details-marker{display:none}
+.syn-box>summary::before{content:"▾";color:var(--sy-accent);margin-right:9px}
+.syn-box:not([open])>summary::before{content:"▸"}
+.syn-box-body{padding:16px 17px}
+.syn-form{display:grid;grid-template-columns:repeat(5,minmax(136px,1fr));gap:12px}
+.syn-field{display:flex;flex-direction:column;gap:6px;font-weight:800;color:var(--sy-text);font-size:13px;min-width:0}
+.syn-field input,.syn-field select,.syn-cell-input{background:var(--sy-field);color:var(--sy-field-text);border:1px solid var(--sy-field-border);border-radius:7px;min-width:0;width:100%;padding:9px 10px;outline:none;font-variant-numeric:tabular-nums}
+.syn-field input:focus,.syn-field select:focus,.syn-cell-input:focus{border-color:var(--sy-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--sy-accent) 22%,transparent)}
+.syn-cell-input{padding:7px 8px;font-size:13px}
+.syn-cell-input:disabled{opacity:.62;cursor:not-allowed}
+.syn-check{display:inline-flex;align-items:center;gap:8px;cursor:pointer;color:var(--sy-text);font-size:13px;font-weight:800}
+.syn-check input{width:17px;height:17px;accent-color:var(--sy-accent)}
+.syn-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 14px}
+.syn-highlight{border:1px solid var(--sy-summary-border);background:var(--sy-summary);padding:18px;border-radius:11px}
+.syn-highlight .sub{font-size:13px;color:var(--sy-muted);font-weight:700}
+.syn-highlight .big{font-size:27px;font-weight:900;letter-spacing:-.025em;margin-top:4px;color:var(--sy-title)}
+.syn-highlight .foot{font-size:13px;color:var(--sy-muted)}
+.syn-resource-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.syn-resource{border:1px solid var(--sy-line);background:var(--sy-card);border-radius:12px;padding:16px;min-width:0}
+.syn-resource .title{color:var(--sy-blue);font-size:14px;font-weight:900}
+.syn-resource .date{font-size:21px;font-weight:900;letter-spacing:-.02em;margin:4px 0 9px;color:var(--sy-title)}
+.syn-resource .metric{font-size:13px;color:var(--sy-muted);margin:5px 0;display:flex;align-items:center;justify-content:space-between;gap:9px}
+.syn-resource .metric strong{color:var(--sy-text);text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.syn-progress-caption{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;font-size:12px;color:var(--sy-muted)}
+.syn-progress-caption strong{color:var(--sy-title);font-variant-numeric:tabular-nums}
+.syn-bar{background:var(--sy-bar-bg);height:8px;border-radius:99px;overflow:hidden;margin-top:5px}
+.syn-bar span{display:block;height:100%;background:var(--sy-bar-fill)}
+.syn-progress-explain{font-size:12px;color:var(--sy-muted);margin:9px 0 0}
+.syn-wealth{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:12px}
+.syn-wealth-card{padding:13px;background:var(--sy-card-alt);border:1px solid var(--sy-line);border-radius:10px}
+.syn-wealth-title{font-size:14px;font-weight:900;color:var(--sy-blue);margin-bottom:8px}
+.syn-wealth .syn-field{margin:9px 0}
+.syn-hint{font-size:12px;color:var(--sy-muted);margin-top:10px;line-height:1.6}
+.syn-table-wrap{overflow-x:auto}
+.syn-table{border-collapse:collapse;min-width:1120px;width:100%;font-size:13px}
+.syn-table th,.syn-table td{border-bottom:1px solid var(--sy-line);padding:9px 6px;text-align:center;white-space:nowrap}
+.syn-table th{color:var(--sy-title);background:var(--sy-head);position:sticky;top:0;font-weight:900}
+.syn-table tbody tr:hover{background:var(--sy-card-alt)}
+.syn-table td:first-child,.syn-table td:nth-child(2){text-align:left}
+.syn-table td:first-child{padding-left:10px}
+.syn-table .syn-name{min-width:175px;font-weight:800}
+.syn-table .syn-num{min-width:84px;max-width:110px}
+.syn-table .syn-wide{min-width:118px}
+.syn-table .syn-select{min-width:91px}
+.syn-kpis{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:13px 17px;border-top:1px solid var(--sy-line);font-size:13px;color:var(--sy-text)}
+.syn-kpis strong{color:var(--sy-green);font-variant-numeric:tabular-nums}
+.syn-setup{display:flex;gap:14px;align-items:end;flex-wrap:wrap;margin-bottom:13px}
+.syn-setup .syn-field{width:130px}
+.syn-small{color:var(--sy-muted);font-size:12px}
+.syn-status{padding:12px 15px;background:var(--sy-status);border:1px solid var(--sy-line);border-radius:8px;margin-bottom:15px;color:var(--sy-text);font-size:13px}
+.syn-status.warn{background:var(--sy-warn-bg);border-color:var(--sy-warn-color);color:var(--sy-warn-color)}
+.syn-result-detail .syn-table{min-width:735px}
+.syn-result-detail .syn-table td{text-align:right}
+.syn-result-detail .syn-table td:first-child{text-align:left}
+@media(max-width:900px){
+  .syn-form{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .syn-wealth{grid-template-columns:1fr}
+  .syn-resource-cards{grid-template-columns:1fr}
+}
+@media(max-width:650px){
+  .syn-wrap{padding:8px 8px 25px}
+  .syn-utility{align-items:flex-start}
+  .syn-form{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .syn-summary{grid-template-columns:1fr}
+  .syn-highlight .big{font-size:24px}
+  .syn-box-body{padding:12px}
+  .syn-box-head,.syn-box>summary{padding:12px 13px}
+}
+
+
+/* v1.431: compact horizontal rows for input/results and owned/daily sections */
+.syn-top-grid{
+  display:grid;
+  grid-template-columns:minmax(0,2.45fr) minmax(0,.84fr) minmax(0,.84fr);
+  gap:12px;
+  align-items:stretch;
+  margin:0 0 14px;
+}
+.syn-top-grid > *{min-width:0;margin-bottom:0}
+.syn-input-panel .syn-box-body{padding:12px 13px 10px}
+.syn-top-grid .syn-form{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px 10px}
+.syn-top-grid .syn-field{font-size:12px;gap:4px}
+.syn-top-grid .syn-field input{min-width:0;height:35px;font-size:14px;padding:5px 8px}
+.syn-input-panel .syn-hint{font-size:11px;line-height:1.45;margin:9px 0 0}
+.syn-result-panel{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  min-width:0;
+  padding:14px 14px;
+  overflow-wrap:anywhere;
+}
+.syn-result-panel .sub{font-size:12px;line-height:1.45}
+.syn-result-panel .big{font-size:25px;line-height:1.25;margin:9px 0}
+.syn-result-panel .foot{font-size:12px;line-height:1.55}
+.syn-detail-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);
+  align-items:stretch;
+  gap:12px;
+}
+.syn-detail-grid > .syn-box{min-width:0;margin-bottom:16px}
+.syn-detail-grid .syn-box-head{padding:12px 14px}
+.syn-owned-panel .syn-box-body{padding:11px 12px}
+.syn-owned-panel .syn-wealth{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:0}
+.syn-owned-panel .syn-wealth-card{padding:10px}
+.syn-owned-panel .syn-wealth-title{font-size:13px;margin-bottom:5px}
+.syn-owned-panel .syn-field{font-size:12px;margin:5px 0;gap:4px}
+.syn-owned-panel .syn-field input{height:34px;font-size:13px;padding:6px 8px}
+.syn-owned-panel .syn-hint{font-size:11px;margin:8px 0}
+.syn-owned-panel .syn-wealth-card .syn-hint{overflow-wrap:anywhere}
+.syn-daily-panel .syn-box-body{padding:12px}
+.syn-daily-panel .syn-daily-hint{margin:0 0 10px;font-size:12px}
+.syn-daily-list{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;
+}
+.syn-daily-item{
+  min-height:35px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 9px;
+  border:1px solid var(--sy-line);
+  background:var(--sy-card-alt);
+  border-radius:7px;
+  color:var(--sy-text);
+  cursor:pointer;
+  font-size:13px;
+  font-weight:700;
+  min-width:0;
+}
+.syn-daily-item:hover{border-color:var(--sy-accent)}
+.syn-daily-item input{
+  width:16px;
+  height:16px;
+  flex:0 0 16px;
+  margin:0;
+  accent-color:var(--sy-accent);
+  cursor:pointer;
+}
+.syn-daily-item span{min-width:0;overflow-wrap:anywhere}
+@media(max-width:820px){
+  .syn-top-grid{grid-template-columns:minmax(0,1.9fr) repeat(2,minmax(0,1fr))}
+  .syn-top-grid .syn-form{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .syn-detail-grid{grid-template-columns:1fr}
+  .syn-daily-list{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:720px){
+  .syn-top-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .syn-top-grid .syn-input-panel{grid-column:1/-1}
+  .syn-result-panel{min-height:118px;padding:12px}
+  .syn-result-panel .big{font-size:23px}
+  .syn-detail-grid .syn-wealth{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .syn-daily-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:500px){
+  .syn-top-grid .syn-form{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .syn-detail-grid .syn-wealth{grid-template-columns:1fr}
+  .syn-daily-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .syn-result-panel .big{font-size:21px}
+}
+@media(max-width:350px){
+  .syn-daily-list{grid-template-columns:1fr}
+  .syn-top-grid{grid-template-columns:1fr}
+  .syn-top-grid .syn-input-panel{grid-column:auto}
+}
+
+
+/* v1.433: Only yellow spreadsheet cells are editable. Package figures are read-only. */
+.syn-fixed-settings{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:6px 14px;
+  padding:9px 11px;
+  border:1px solid var(--sy-line);
+  border-radius:8px;
+  background:var(--sy-card-alt);
+  color:var(--sy-muted);
+  font-size:12px;
+  line-height:1.5;
+}
+.syn-fixed-settings > span:first-child{font-weight:900;color:var(--sy-title)}
+.syn-source-edit-notice{margin:8px 0 12px}
+.syn-locked{
+  color:var(--sy-muted);
+  font-variant-numeric:tabular-nums;
+}
+.syn-table td.syn-locked{color:var(--sy-muted)}
+.syn-table td.syn-locked:not(:first-child){text-align:center}
+
+
+/* v1.434: lock all non-yellow package cells as non-interactive output */
+.syn-package-table .syn-locked,
+.syn-package-table .syn-fixed-value{
+  pointer-events:none;
+  user-select:none;
+  -webkit-user-select:none;
+  cursor:default;
+}
+.syn-package-table .syn-fixed-value{
+  display:inline-block;
+  min-width:2.2em;
+  padding:2px 0;
+  color:var(--sy-text);
+  font-variant-numeric:tabular-nums;
+}
+.syn-package-table .syn-locked .syn-fixed-value{color:var(--sy-muted)}
+.syn-build-tag{
+  display:inline-block;
+  margin-left:6px;
+  padding:1px 7px;
+  border:1px solid var(--sy-line);
+  border-radius:5px;
+  font-size:11px;
+  color:var(--sy-muted);
+  vertical-align:middle;
+}
+
+
+/* v1.435: neutral package controls; no colored check/selection cell backgrounds */
+.syn-package-table .syn-name{min-width:224px}
+.syn-package-table td.syn-package-check,
+.syn-package-table td.syn-package-choice{
+  background:transparent;
+  color:var(--sy-text);
+}
+.syn-package-table .syn-package-check input[type="checkbox"]{
+  width:17px;height:17px;
+  cursor:pointer;
+  accent-color:var(--sy-accent);
+}
+.syn-package-table .syn-package-choice select{
+  background:var(--sy-field);
+  border-color:var(--sy-field-border);
+  color:var(--sy-field-text);
+  font-weight:700;
+  cursor:pointer;
+}
+.syn-package-table .syn-package-choice select:focus{
+  border-color:var(--sy-accent);
+}
+
+
+/* v1.436: swap sections — package controls beside inventory, daily checklist below */
+.syn-package-panel .syn-box-body{padding:10px 13px 12px}
+.syn-package-list{display:grid;grid-template-columns:minmax(0,1fr);gap:0}
+.syn-package-item{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 106px;
+  gap:9px;
+  align-items:center;
+  min-height:38px;
+  padding:5px 2px;
+  border-bottom:1px solid var(--sy-line);
+}
+.syn-package-item:last-child{border-bottom:0}
+.syn-package-item.syn-no-choice .syn-package-toggle{grid-column:1/-1}
+.syn-package-toggle{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+  color:var(--sy-text);
+  font-size:13px;
+  font-weight:700;
+  line-height:1.3;
+  cursor:pointer;
+}
+.syn-package-toggle input[type="checkbox"]{
+  width:17px;height:17px;min-width:17px;
+  margin:0;cursor:pointer;
+  accent-color:var(--sy-accent);
+}
+.syn-package-toggle span{min-width:0;overflow-wrap:anywhere}
+.syn-package-select{
+  width:100%;
+  min-width:0;
+  height:33px;
+  padding:5px 7px;
+  background:var(--sy-field);
+  color:var(--sy-field-text);
+  border:1px solid var(--sy-field-border);
+  border-radius:7px;
+  cursor:pointer;
+  font-weight:700;
+  font-size:12px;
+}
+.syn-daily-wide .syn-box-body{padding:12px 15px}
+.syn-daily-wide .syn-daily-list{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+}
+@media(max-width:1000px){
+  .syn-package-item{grid-template-columns:minmax(0,1fr) 94px;gap:6px}
+  .syn-package-toggle{font-size:12px}
+  .syn-daily-wide .syn-daily-list{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:680px){
+  .syn-package-item{grid-template-columns:minmax(0,1fr) 106px}
+  .syn-package-toggle{font-size:13px}
+  .syn-daily-wide .syn-daily-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:380px){
+  .syn-package-item{grid-template-columns:minmax(0,1fr) 90px}
+  .syn-daily-wide .syn-daily-list{grid-template-columns:1fr}
+}
+
+/* v1.444: read-only per-package cost efficiency, separated by resource */
+.syn-package-efficiency{
+  grid-column:1/-1;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  min-width:0;
+  padding:2px 2px 7px 25px;
+  line-height:1.45;
+  font-size:11px;
+  overflow-wrap:anywhere;
+  font-variant-numeric:tabular-nums;
+}
+.syn-package-price{color:var(--sy-muted)}
+.syn-package-price strong{color:var(--sy-text);font-weight:800}
+.syn-package-gain{color:var(--sy-text)}
+.syn-package-value{color:var(--sy-title);font-weight:850}
+.syn-package-efficiency-note{margin:9px 1px 1px;color:var(--sy-muted);font-size:11px;line-height:1.5}
+
+/* v1.445: normalize package time-savings per actual cost to subscription = 100% */
+.syn-package-value strong{font-size:14px;font-weight:900;color:var(--sy-title)}
+.syn-package-value span{font-size:10px;font-weight:700;color:var(--sy-muted)}
+.syn-package-spend{font-size:10px;color:var(--sy-muted)}
+
+/* v1.446: compact package rows matching the existing site, not an image clone */
+.syn-package-panel .syn-box-body{padding:5px 12px 8px}
+.syn-package-list{gap:0}
+.syn-package-item,
+.syn-package-item.syn-no-choice{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 88px;
+  gap:7px;
+  align-items:center;
+  min-height:51px;
+  padding:7px 3px;
+}
+.syn-package-item.syn-no-choice{grid-template-columns:minmax(0,1fr)}
+.syn-package-row-main{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  min-width:0;
+  gap:3px 9px;
+}
+.syn-package-toggle{
+  flex:0 1 auto;
+  max-width:100%;
+  min-width:0;
+  gap:6px;
+  font-size:12px;
+  line-height:1.3;
+}
+.syn-package-toggle input[type="checkbox"]{width:15px;height:15px;min-width:15px}
+.syn-package-efficiency{
+  grid-column:auto;
+  flex:1 1 130px;
+  min-width:118px;
+  padding:0;
+  gap:2px;
+  line-height:1.3;
+  font-size:11px;
+}
+.syn-package-value{font-weight:800;white-space:normal}
+.syn-package-value strong{font-size:13px}
+.syn-package-value span{font-size:9px}
+.syn-package-spend{font-size:10px;line-height:1.25}
+.syn-package-select{width:88px;height:30px;padding:4px 7px;font-size:11px}
+@media(max-width:1000px){
+  .syn-package-item,.syn-package-item.syn-no-choice{gap:5px}
+  .syn-package-row-main{gap:3px 6px}
+  .syn-package-toggle{font-size:11px}
+}
+@media(max-width:680px){
+  .syn-package-item{grid-template-columns:minmax(0,1fr) 88px}
+  .syn-package-item.syn-no-choice{grid-template-columns:minmax(0,1fr)}
+  .syn-package-toggle{font-size:12px}
+}
+
+/* v1.447: show price and time efficiencies side by side in compact rows */
+.syn-package-values{
+  display:flex;
+  align-items:baseline;
+  flex-wrap:wrap;
+  column-gap:9px;
+  row-gap:2px;
+  min-width:0;
+}
+.syn-package-values .syn-package-value{
+  display:inline-flex;
+  align-items:baseline;
+  gap:3px;
+  white-space:nowrap;
+  font-size:10px;
+  line-height:1.2;
+}
+.syn-package-values .syn-package-value strong{font-size:12px}
+.syn-package-spend{margin-top:2px}
+
+/* v1.448: fixed-size inventory cards with individual 1/2/4/8/12/24-hour boxes */
+.syn-owned-panel .syn-wealth-card{
+  height:179px;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.syn-owned-panel .syn-wealth-title{flex:none;margin-bottom:4px}
+.syn-owned-panel .syn-wealth-raw{
+  flex:none;
+  margin:0 0 5px;
+  gap:2px;
+  font-size:11px;
+  line-height:1.2;
+}
+.syn-owned-panel .syn-wealth-raw input{
+  height:27px;
+  padding:4px 7px;
+  font-size:12px;
+}
+.syn-wealth-subhead{
+  flex:none;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:3px;
+  margin-bottom:3px;
+  color:var(--sy-muted);
+  font-size:10px;
+  font-weight:700;
+}
+.syn-wealth-boxes{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+  scrollbar-color:var(--sy-field-border) transparent;
+  padding-right:3px;
+}
+.syn-wealth-box-row{
+  display:grid;
+  grid-template-columns:minmax(40px,1fr) minmax(62px,0.95fr);
+  gap:4px;
+  align-items:center;
+  margin-bottom:3px;
+  color:var(--sy-text);
+  font-size:11px;
+  font-weight:700;
+}
+.syn-wealth-box-row input{
+  width:100%;
+  min-width:0;
+  height:26px;
+  padding:3px 6px;
+  border:1px solid var(--sy-field-border);
+  border-radius:6px;
+  background:var(--sy-field);
+  color:var(--sy-field-text);
+  font-size:11px;
+  font-variant-numeric:tabular-nums;
+}
+.syn-wealth-box-row input:focus{
+  outline:2px solid var(--sy-accent);
+  outline-offset:0;
+}
+.syn-owned-panel .syn-wealth-card .syn-hint{
+  flex:none;
+  margin:4px 0 0;
+  font-size:10px;
+  line-height:1.3;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* v1.449: inventory panel follows only its own content, not the taller package panel.
+   Denomination cards expand to reveal every box input without internal scrolling. */
+.syn-detail-grid > .syn-owned-panel{
+  align-self:start;
+  height:auto;
+}
+.syn-owned-panel .syn-wealth-card{
+  height:auto;
+  min-height:0;
+  overflow:visible;
+}
+.syn-owned-panel .syn-wealth-boxes{
+  flex:none;
+  height:auto;
+  min-height:0;
+  overflow:visible;
+  padding-right:0;
+}
+.syn-owned-panel .syn-wealth-subhead span:last-child{
+  display:none;
+}
+
+/* v1.451: daily sweep jewel spend shown below package expenditure */
+.syn-result-panel .syn-jewel-usage{
+  color:var(--sy-title);
+  font-size:13px;
+  font-weight:800;
+  line-height:1.45;
+  margin:-4px 0 6px;
+  font-variant-numeric:tabular-nums;
+}
+
+/* v1.452: compact paid-package row vertical rhythm to align with inventory panel */
+.syn-detail-grid > .syn-package-panel{
+  align-self:start;
+  height:auto;
+}
+.syn-package-panel .syn-box-body{
+  padding:3px 10px 5px;
+}
+.syn-package-panel .syn-package-item,
+.syn-package-panel .syn-package-item.syn-no-choice{
+  min-height:0;
+  padding:2px 1px;
+  gap:4px;
+}
+.syn-package-panel .syn-package-row-main{
+  gap:1px 5px;
+  align-items:center;
+}
+.syn-package-panel .syn-package-toggle{
+  gap:5px;
+  font-size:11px;
+  line-height:1.15;
+}
+.syn-package-panel .syn-package-toggle input[type="checkbox"]{
+  width:14px;
+  height:14px;
+  min-width:14px;
+}
+.syn-package-panel .syn-package-efficiency{
+  gap:0;
+  min-width:115px;
+  line-height:1.15;
+}
+.syn-package-panel .syn-package-values{
+  column-gap:6px;
+  row-gap:0;
+}
+.syn-package-panel .syn-package-values .syn-package-value{
+  gap:2px;
+  font-size:9px;
+  line-height:1.12;
+}
+.syn-package-panel .syn-package-values .syn-package-value strong{
+  font-size:11px;
+}
+.syn-package-panel .syn-package-spend{
+  margin:0;
+  font-size:9px;
+  line-height:1.15;
+}
+.syn-package-panel .syn-package-select{
+  height:26px;
+  padding:3px 5px;
+  font-size:11px;
+}
+@media(max-width:1000px){
+  .syn-package-panel .syn-package-item,
+  .syn-package-panel .syn-package-item.syn-no-choice{gap:4px}
+  .syn-package-panel .syn-package-toggle{font-size:10.5px}
+}
+
+/* v1.453: keep the package panel bottom aligned with the neighboring inventory panel.
+   Redistribute vertical space between entries rather than compressing their text. */
+.syn-detail-grid > .syn-package-panel{
+  align-self:stretch;
+  display:flex;
+  flex-direction:column;
+  height:auto;
+  min-height:0;
+}
+.syn-package-panel .syn-box-head{
+  flex:0 0 auto;
+}
+.syn-package-panel .syn-box-body{
+  flex:1 1 auto;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  padding:5px 10px 7px;
+}
+.syn-package-panel .syn-package-list{
+  flex:1 1 auto;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+}
+.syn-package-panel .syn-package-item,
+.syn-package-panel .syn-package-item.syn-no-choice{
+  flex:0 0 auto;
+  padding:3px 1px;
+}
+
+/* v1.457: compact per-section bulk check controls, without disrupting panel dimensions */
+.syn-header-controls{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:space-between;
+  gap:6px 10px;
+}
+.syn-check-actions{
+  display:inline-flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:flex-end;
+  gap:5px;
+}
+.syn-check-actions button{
+  appearance:none;
+  border:1px solid var(--sy-line);
+  border-radius:6px;
+  padding:3px 7px;
+  min-height:25px;
+  background:var(--sy-card-alt);
+  color:var(--sy-title);
+  font-size:10px;
+  font-weight:800;
+  line-height:1.15;
+  white-space:nowrap;
+  cursor:pointer;
+}
+.syn-check-actions button:hover{
+  border-color:var(--sy-accent);
+  background:var(--sy-card);
+}
+.syn-check-actions button:focus-visible{
+  outline:2px solid var(--sy-accent);
+  outline-offset:2px;
+}
+
+
+/* v1.459: campaign progression simulator */
+
+.syn-progress-options{display:flex;flex-wrap:wrap;align-items:end;gap:10px 18px;margin-top:13px;padding:12px;border:1px solid var(--sy-line);border-radius:9px;background:var(--sy-card-alt)}
+.syn-progress-modes{flex:1 1 390px;min-width:0}
+.syn-progress-choices{flex:2 1 400px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 17px}
+.syn-progress-choices[hidden],.syn-progress-overview[hidden]{display:none!important}
+.syn-progress-tip{flex:1 1 100%;color:var(--sy-muted);font-size:12px}
+.syn-progress-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.syn-progress-stat{min-width:0;display:flex;flex-direction:column;gap:4px;padding:11px 13px;background:var(--sy-card-alt);border:1px solid var(--sy-line);border-radius:8px}
+.syn-progress-stat span{font-size:12px;color:var(--sy-muted)}
+.syn-progress-stat strong{font-size:17px;color:var(--sy-title);font-variant-numeric:tabular-nums}
+.syn-progress-disclaimer{color:var(--sy-muted);font-size:12px;margin:12px 0}
+.syn-progress-details{margin-top:8px}
+.syn-progress-details summary{cursor:pointer;color:var(--sy-blue);font-weight:800;padding:8px 0}
+.syn-progress-details .syn-table-wrap{overflow-x:auto}
+.syn-progress-details table{min-width:740px}
+@media(max-width:900px){.syn-progress-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:450px){.syn-progress-stats{grid-template-columns:1fr}}
+
+/* TEST 1.460: one-click outpost calculation mode buttons */
+.syn-progress-modes{display:flex;flex-direction:column;gap:7px}
+.syn-progress-label{color:var(--sy-text);font-size:13px;font-weight:800}
+.syn-mode-buttons{display:flex;align-items:stretch;gap:6px}
+.syn-mode-buttons button{
+  appearance:none;flex:1 1 0;min-width:0;border:1px solid var(--sy-field-border);
+  border-radius:8px;background:var(--sy-field);color:var(--sy-text);
+  padding:10px 12px;font-size:13px;font-weight:800;line-height:1.3;cursor:pointer;
+}
+.syn-mode-buttons button:hover{border-color:var(--sy-accent);background:var(--sy-card)}
+.syn-mode-buttons button.active,.syn-mode-buttons button[aria-pressed="true"]{
+  border-color:var(--sy-accent);background:var(--sy-accent);color:var(--sy-accent-contrast)
+}
+.syn-mode-buttons button.active:hover{filter:brightness(1.08)}
+.syn-mode-buttons button:focus-visible{outline:3px solid var(--sy-accent);outline-offset:2px}
+@media(max-width:550px){.syn-mode-buttons{flex-direction:column}}
+
+/* TEST 1.462: show marginal whole-target duration change per paid package */
+.syn-package-panel .syn-package-impact{color:var(--sy-blue);font-size:10px;font-weight:800;line-height:1.25;margin-top:3px}
+.syn-package-panel .syn-package-values .syn-package-value{white-space:normal}
+
+/* TEST 1.463: user-anchored remaining campaign progress */
+.syn-stage-anchor-panel{flex:1 1 100%;border-top:1px solid var(--sy-line);padding-top:10px;display:flex;flex-direction:column;gap:8px}
+.syn-stage-anchor-grid{display:flex;flex-wrap:wrap;gap:8px 14px}
+.syn-stage-anchor-row{display:flex;align-items:end;gap:8px;flex:1 1 250px;max-width:380px}
+.syn-stage-anchor-row>span{font-size:13px;color:var(--sy-title);font-weight:800;min-width:30px;padding-bottom:9px}
+.syn-stage-anchor-row .syn-field{min-width:0;flex:1 1 0;font-size:12px}
+.syn-stage-anchor-row input{max-width:140px;min-height:37px}
+
+/* TEST 1.464: outpost value is computed from both exact campaign progress anchors */
+.syn-field input:disabled{opacity:.73;cursor:not-allowed;background:var(--sy-card-alt)}
+
+/* TEST 1.465: the next threshold-only outpost jump */
+.syn-progress-next{margin:11px 0 2px;padding:9px 12px;border:1px solid var(--sy-line);border-radius:8px;background:var(--sy-card-alt);color:var(--sy-title);font-size:13px;font-weight:800}
+
+/* TEST 1.466: warning for manual outpost 40+ levels above campaign reference */
+.syn-outpost-discrepancy{margin:12px 0 0;padding:10px 12px;border:1px solid #df8e97;border-left:4px solid #c43e50;border-radius:8px;background:#fff0f2;color:#a12639;font-size:13px;line-height:1.6;font-weight:800}
+.syn-outpost-discrepancy[hidden]{display:none!important}
+html.dark-theme .syn-outpost-discrepancy{background:#391d26;border-color:#a95764;border-left-color:#f18a99;color:#ffc4cc}
+
+/* TEST 1.467: preserve requested three-line outpost discrepancy warning */
+.syn-outpost-discrepancy{white-space:pre-line}
+
+/* v1.472: collapsible resource-specific goal dates */
+.syn-resource-date-details .syn-resource-cards{margin-bottom:10px}
+.syn-resource-date-details .syn-progress-explain{margin:0}
+
+/* v1.473: Excel-style warning note for a resource choice without date improvement */
+.syn-package-panel{overflow:visible}
+.syn-package-choice-wrap{display:flex;position:relative;align-items:center;width:100%;min-width:0}
+.syn-package-panel .syn-package-choice-wrap .syn-package-select{width:100%;min-width:0}
+.syn-package-choice-warning{
+ position:absolute;top:-8px;right:-5px;z-index:4;
+ display:inline-flex;justify-content:center;align-items:center;
+ width:17px;height:17px;border:1px solid #c88715;border-radius:4px;
+ background:#fff0b7;color:#8e4e00;font-size:12px;font-weight:900;
+ line-height:1;box-shadow:0 1px 3px rgba(0,0,0,.16);cursor:help
+}
+.syn-package-choice-warning[hidden]{display:none!important}
+.syn-package-choice-warning:focus-visible{outline:2px solid #c88715;outline-offset:2px}
+.syn-package-warning-note{
+ position:absolute;bottom:calc(100% + 8px);right:0;z-index:5;
+ display:none;width:max-content;max-width:min(260px,80vw);
+ padding:9px 11px;border:1px solid #cca64d;border-radius:5px;
+ background:#fffbea;color:#40341a;box-shadow:0 7px 18px rgba(0,0,0,.19);
+ text-align:left;white-space:normal;font-size:12px;line-height:1.45;
+ font-weight:700;pointer-events:none
+}
+.syn-package-choice-warning:hover .syn-package-warning-note,
+.syn-package-choice-warning:focus-visible .syn-package-warning-note{display:block}
+
+/* v1.474: highlight the collapsed resource-date heading when a paid resource
+   selection triggers the no-improvement warning. */
+.syn-resource-date-details.syn-has-package-warning:not([open]){
+ border-color:#d6a03a;
+ box-shadow:0 0 0 1px rgba(214,160,58,.26);
+}
+.syn-resource-date-details.syn-has-package-warning:not([open])>summary{
+ background:#fff0c9;
+ color:#75440b;
+}
+.syn-resource-date-details.syn-has-package-warning:not([open])>summary::before{color:#a36c0c}
+html.dark-theme .syn-resource-date-details.syn-has-package-warning:not([open]){
+ border-color:#bc8735;
+ box-shadow:0 0 0 1px rgba(223,165,61,.26);
+}
+html.dark-theme .syn-resource-date-details.syn-has-package-warning:not([open])>summary{
+ background:#45331a;
+ color:#ffe5ac;
+}
+html.dark-theme .syn-resource-date-details.syn-has-package-warning:not([open])>summary::before{color:#ffd383}
+
+/* Always emphasize the resource with the latest calculated completion date.
+   Equal latest dates share the highlight; unavailable dates are excluded. */
+.syn-resource-cards .syn-resource.syn-latest-goal{
+ border-color:#d6a03a;
+ background:#fff8e8;
+ box-shadow:0 0 0 2px rgba(214,160,58,.26);
+}
+.syn-resource-cards .syn-resource.syn-latest-goal .date{color:#875009}
+html.dark-theme .syn-resource-cards .syn-resource.syn-latest-goal{
+ border-color:#bf8d38;
+ background:#322b1b;
+ box-shadow:0 0 0 2px rgba(223,165,61,.30);
+}
+html.dark-theme .syn-resource-cards .syn-resource.syn-latest-goal .date{color:#ffe1a1}
+
+/* TEST 1.484: center both top result panels horizontally and vertically */
+.syn-top-grid > .syn-result-panel {
+  align-items:center;
+  text-align:center;
+}
+.syn-top-grid > .syn-result-panel .sub,
+.syn-top-grid > .syn-result-panel .big,
+.syn-top-grid > .syn-result-panel .foot,
+.syn-top-grid > .syn-result-panel .syn-jewel-usage {
+  max-width:100%;
+  overflow-wrap:anywhere;
+  text-align:center;
+}
+
+/* TEST 1.485: each goal summary metric on its own centered line */
+#syn-overall-days{white-space:pre-line;line-height:1.85;text-align:center}
