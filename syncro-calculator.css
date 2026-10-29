@@ -965,3 +965,6 @@ html.dark-theme .syn-resource-cards .syn-resource.syn-latest-goal .date{color:#f
   grid-row:3 / span 2;
   align-self:start;
 }
+
+/* 1.526: keep the reset control at the right after removing the source caption. */
+.syn-utility .syn-actions{margin-left:auto}

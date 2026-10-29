@@ -153,7 +153,6 @@
     <div class="syn-wrap">
       <h1 class="syn-sr-only">싱크로 레벨업 계산기</h1>
       <div class="syn-utility">
-        <span class="syn-utility-note">전초기지 생산량: 사이트 내 인게임 확인 표(1~800레벨) · 레벨업 비용: 원본 시트</span>
         <div class="syn-actions"><button class="syn-btn" id="syn-reset" type="button">입력값 초기화</button></div>
       </div>
       <div id="syn-output">
@@ -198,7 +197,6 @@
           <div class="syn-box-head">2. 보유 재화 입력</div>
           <div class="syn-box-body">
             <label class="syn-check"><input type="checkbox" data-key="subtractOwned" ${state.subtractOwned?"checked":""}>보유 재화를 필요량에서 차감</label>
-            <p class="syn-hint" id="syn-hourly">전초기지 시간당 생산량</p>
             <div class="syn-wealth">
               ${names.map((name,j)=>`<div class="syn-wealth-card">
                 <div class="syn-wealth-title">${name}</div>
@@ -258,8 +256,7 @@
       </details>
       <details class="syn-box"><summary>5. 구간별 필요 재화 세부표</summary><div class="syn-box-body syn-result-detail"><div class="syn-table-wrap"><table class="syn-table"><thead><tr><th>레벨 구간</th><th>적용 횟수</th><th>필요 코더</th><th>필요 배데</th><th>필요 크레딧</th></tr></thead>
         <tbody id="syn-band-table"></tbody></table></div></div></details>
-      <div class="syn-status" id="syn-status">계산 중...</div>
-      <div class="syn-note">자료 기준: 전초기지 생산량은 사이트 내 인게임 확인 표, 레벨업 비용·수급 규칙은 원본 시트(2026-10-28) · 입력 설정은 현재 브라우저에 저장됩니다. 원본 시트는 수정하지 않습니다.</div>
+      <div class="syn-status" id="syn-status" hidden></div>
     </div>`;
     enforcePackageEditPolicy();
     update();
@@ -536,7 +533,6 @@
       el("syn-overall-cost").textContent="산정 불가";
       el("syn-overall-jewels").textContent="쥬얼 소모량 산정 불가";
       el("syn-overall-sub").textContent="레벨업 비용 자료는 201레벨부터 제공됩니다.";
-      el("syn-hourly").textContent="싱크로 200레벨 미만에서는 예상 생산량 변화 및 달성일을 계산하지 않습니다.";
       el("syn-resource-cards").innerHTML='<p class="syn-progress-tip">'+notice+'</p>';
       el("syn-band-table").innerHTML='<tr><td colspan="5">싱크로 200레벨 이상부터 필요 재화를 계산합니다.</td></tr>';
       for(let j=0;j<3;j++)el("syn-owned-"+j).textContent="계산 대상 아님";
@@ -551,6 +547,7 @@
       const progressPanel=el("syn-progress-overview");
       if(progressPanel)progressPanel.hidden=true;
       const status=el("syn-status");
+      status.hidden=false;
       status.classList.add("warn");
       status.textContent=notice;
       return;
@@ -578,8 +575,6 @@
     el("syn-overall-sub").textContent=c.invalidGoal?"목표 레벨 입력을 확인해 주세요":
       c.completeDay===null?"1,500일 내 목표 미도달 · 목표 달성 비용 산정 불가":
       "활성화된 패키지 구매 기준 · 목표 달성까지 합산";
-    const endRate=SOURCE.rates[c.endOutpost-1];
-    el("syn-hourly").textContent=`시작 전초기지 Lv.${c.outpost} (시간당 코더 ${fmt(c.rate[0],2)}) → 예상 최종 Lv.${c.endOutpost} (시간당 코더 ${fmt(endRate[0],2)}) · 보유 상자는 시작 시점 생산량 적용`;
     const finiteGoalDays=c.reached.filter(day=>Number.isFinite(day));
     const latestGoalDay=finiteGoalDays.length?Math.max(...finiteGoalDays):null;
     const hasUnreachedResource=c.reached.some(day=>day===null);
@@ -604,9 +599,9 @@
     el("syn-band-table").innerHTML=c.bands.filter(b=>b.qty).map(b=>`<tr><td>${b.start}~${b.end}</td><td>${fmt(b.qty)}</td>${[0,1,2].map(j=>`<td>${fmt(b.qty*safe(b.need[j]))}</td>`).join("")}</tr>`).join("")||
       '<tr><td colspan="5">현재 레벨과 목표 레벨을 확인해 주세요.</td></tr>';
     const status=el("syn-status");
-    if(c.invalidGoal){status.classList.add("warn");status.textContent="목표 레벨은 현재 레벨보다 높아야 해요.";}
-    else if(c.completeDay===null){status.classList.add("warn");status.textContent="1500일 이내에 목표에 도달하지 못해요. 기본 수급량이나 패키지 설정을 확인해 주세요.";}
-    else{status.classList.remove("warn");status.textContent="사이트의 인게임 확인 전초기지 시간당 생산량과 원본 시트의 레벨업 비용·일일 수급·패키지 규칙을 반영한 예상 결과입니다. 구매 조건과 재화 수급 가정이 실제 게임과 다르면 결과도 달라질 수 있어요.";}
+    if(c.invalidGoal){status.hidden=false;status.classList.add("warn");status.textContent="목표 레벨은 현재 레벨보다 높아야 해요.";}
+    else if(c.completeDay===null){status.hidden=false;status.classList.add("warn");status.textContent="1500일 이내에 목표에 도달하지 못해요. 기본 수급량이나 패키지 설정을 확인해 주세요.";}
+    else{status.hidden=true;status.classList.remove("warn");status.textContent="";}
 
   }
   function onEdit(e){
