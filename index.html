@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko"><head><!-- GitHub Pages deployment refresh 1.527 --><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/webp" href="assets/nikke-manager-icon.webp?v=0439">
+<html lang="ko"><head><!-- GitHub Pages deployment refresh 1.528 --><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/webp" href="assets/nikke-manager-icon.webp?v=0439">
 <title>니케 장비관리</title>
 <style>
 :root{--bg:#080d19;--panel:#0f1729;--panel2:#111c32;--line:#26324b;--text:#edf2ff;--muted:#8490aa;--accent:#927dff;--good:#47d7c7;--danger:#ff6c86}
@@ -4384,7 +4384,7 @@ html.dark-theme .name-cell-image{
 (function(){
   // Keep the visible build label in sync with the version embedded in this page.
   // Do not redirect/reload the page based on a separately cached VERSION file.
-  var EMBEDDED_VERSION='1.527';
+  var EMBEDDED_VERSION='1.528';
   function applyVersion(){
     var el=document.getElementById('siteVersionCorner');
     if(el) el.textContent='VERSION '+EMBEDDED_VERSION;
@@ -4592,8 +4592,18 @@ html.dark-theme #syncroIframe{background:#0a101c}
 .nav .main-view-nav[data-view="syncro"].syncro-new-unseen::after{
   right:10px;top:50%;transform:translateY(-50%);
 }
+</style><style id="synchro-boost-ui-v1528">
+#dropRatePanel .drop-rate-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 14px}
+#dropRatePanel .drop-rate-controls{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:10px 14px;min-width:0}
+#dropRatePanel .drop-rate-boost{display:flex;align-items:center;gap:7px;min-width:0}
+#dropRatePanel .drop-rate-boost>span{font-size:11px;font-weight:800;color:#617b91;white-space:nowrap}
+#dropRatePanel .drop-rate-boost select{box-sizing:border-box;max-width:100%;min-height:33px;padding:6px 8px;border:1px solid #bfd5df;border-radius:7px;background:#f8fcfe;color:#405b6c;font-size:11px;font-weight:800;cursor:pointer}
+#dropRatePanel .drop-rate-boost-info{margin-top:4px;font-size:10px;color:#647f93;font-weight:700}
+html.dark-theme #dropRatePanel .drop-rate-boost>span,html.dark-theme #dropRatePanel .drop-rate-boost-info{color:#a7bbd1}
+html.dark-theme #dropRatePanel .drop-rate-boost select{background:#0b1421;color:#dce6f3;border-color:#354761}
+@media(max-width:800px){#dropRatePanel .drop-rate-controls{justify-content:flex-start}#dropRatePanel .drop-rate-boost{flex-wrap:wrap}}
 </style></head><body>
-<div class="site-version-corner" id="siteVersionCorner">VERSION 1.527</div><div class="sidebar-hitarea" id="sidebarHitarea" aria-label="메뉴 열기" title="왼쪽 메뉴 열기"></div><button type="button" id="sidebarTopToggle" aria-label="메뉴 열기" title="메뉴 열기" aria-expanded="false"><span aria-hidden="true">☰</span></button>
+<div class="site-version-corner" id="siteVersionCorner">VERSION 1.528</div><div class="sidebar-hitarea" id="sidebarHitarea" aria-label="메뉴 열기" title="왼쪽 메뉴 열기"></div><button type="button" id="sidebarTopToggle" aria-label="메뉴 열기" title="메뉴 열기" aria-expanded="false"><span aria-hidden="true">☰</span></button>
 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 <div class="app"><aside class="sidebar" id="sidebar"><div class="brand"><div class="logo"><img src="assets/nikke-manager-icon.webp?v=0438" alt="니케 장비관리 아이콘"></div><div><h1>니케 장비관리</h1></div></div><div class="nav"><button type="button" class="active main-view-nav" data-view="characters" onclick="switchMainView('characters')">니케 장비 현황</button><button type="button" class="main-view-nav" data-view="outpost" onclick="switchMainView('outpost')">전초기지 생산량</button><button type="button" class="main-view-nav" data-view="syncro" onclick="switchMainView('syncro')">싱크로 레벨업 계산기</button><button type="button" class="main-view-nav" data-view="sole" onclick="switchMainView('sole')">솔레점수기록</button></div><div class="section" style="font-size:11px;color:#6f7b96;line-height:1.6">현재는 니케 관리 기능을 제공합니다.<br>다른 관리 기능은 설정 메뉴에서 사용할 수 있습니다.</div></aside>
 <main class="main"><div class="topbar"><div><div class="eyebrow">NIKKE / INVENTORY</div><h2 id="pageTitle">니케 장비 현황</h2></div><div class="actions account-switcher"><button type="button" class="btn blsync-top-btn" onclick="openBlablalinkSyncGuide()"><svg class="sync-button-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.13-3.36L23 10M1 14l5.36 4.36A9 9 0 0 0 20.49 15"></path></svg><span>계정 동기화</span><svg class="sync-button-chevron" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></button><a href="https://gall.dcinside.com/mgallery/board/view?id=gov&no=5496829" id="siteHelpTopButton" class="bl-direct-site-help" target="_blank" rel="noopener noreferrer" aria-label="사이트 이용법 (새 탭에서 열기)" title="사이트 이용법 링크 열기">사이트 이용법</a><button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="어두운 화면으로 보기" title="어두운 화면으로 보기" onclick="toggleDarkTheme()">☀️</button><button type="button" class="btn account-switch-btn active" data-account="계정1" onclick="switchAccount(ACCOUNTS[0])">계정1</button><button type="button" class="btn account-switch-btn" data-account="계정2" onclick="switchAccount(ACCOUNTS[1])">계정2</button><div class="settings-wrap"><button type="button" class="settings-btn" id="settingsBtn" aria-label="설정" title="설정" onclick="toggleSettingsMenu(event)">⚙</button></div></div></div><section id="syncroPanel" hidden aria-label="싱크로 레벨업 계산기"><iframe id="syncroIframe" src="./syncro-calculator.html?v=1526" title="싱크로 레벨업 계산기" loading="lazy"></iframe></section><div class="settings-popover" id="settingsPopover" hidden>
@@ -5147,7 +5157,7 @@ function toggleDropRatePanel(){
   if(dropRateExpanded) renderDropRatePanel();
 }
 const DROP_RATE_STORAGE='nikke_drop_rate_settings_v1';
-let dropRateSettings=(()=>{try{const v=JSON.parse(localStorage.getItem(DROP_RATE_STORAGE)||'null');const d={머리:9,몸통:9,장갑:9,다리:9,pool:15};return v&&typeof v==='object'?Object.assign(d,v):d}catch(e){return {머리:9,몸통:9,장갑:9,다리:9,pool:15}}})();
+let dropRateSettings=(()=>{try{const v=JSON.parse(localStorage.getItem(DROP_RATE_STORAGE)||'null');const d={머리:9,몸통:9,장갑:9,다리:9,pool:15,boostStage:1};return v&&typeof v==='object'?Object.assign(d,v):d}catch(e){return {머리:9,몸통:9,장갑:9,다리:9,pool:15,boostStage:1}}})();
 function saveDropRateSettings(){try{localStorage.setItem(DROP_RATE_STORAGE,JSON.stringify(dropRateSettings));}catch(e){}}
 function getOwnedCorporateTotals(){
   const totals={머리:0,몸통:0,장갑:0,다리:0};
@@ -5237,6 +5247,9 @@ function renderDropRatePanel(){
   const need=getNeedTypeTotals();
   const ownedCorporate=getOwnedCorporateTotals();
   const pool=Math.max(1,Number(dropRateSettings.pool)||1);
+  // Stage-3 bonus adds to stage-2: daily attempts = 3 / 4 / 5.
+  const boostStage=Math.min(3,Math.max(1,Math.trunc(Number(dropRateSettings.boostStage)||1)));
+  const dailyAttempts=3+(boostStage>=2?1:0)+(boostStage>=3?1:0);
   const fmt=n=>Number(n).toLocaleString('ko-KR');
   const dungeonNames={머리:'울트라(머리)',몸통:'인디빌리아(몸통)',장갑:'미러 컨테이너(장갑)',다리:'하베스터(다리)'};
   const needCounts=getNeedTypeCounts();
@@ -5248,9 +5261,9 @@ function renderDropRatePanel(){
     const neededCount=getNeedEquipmentCounts()[p]||0;
     const validRate=Math.min(100,target*n);
     const expectedClears=getExpectedAllGearClears(needCounts[p],rate,pool);
-    const expectedDays=expectedClears>0?Math.ceil(expectedClears/3):0;
+    const expectedDays=expectedClears>0?Math.ceil(expectedClears/dailyAttempts):0;
     const exp=validRate>0?Math.ceil(100/validRate):0;
-    const days=exp>0?Math.ceil(exp/3):0;
+    const days=exp>0?Math.ceil(exp/dailyAttempts):0;
     return '<div class="drop-rate-card"><h4>'+esc(dungeonNames[p]||p)+'</h4>'
       +'<div class="drop-rate-row"><label>파밍 단계</label>'
       +'<button type="button" class="drop-stage-btn" onclick="openDropStageMenu(\''+p+'\',this)">'+stage+'단계 ▾</button></div>'
@@ -5263,11 +5276,11 @@ function renderDropRatePanel(){
       +'<div>전체 필요 장비 완료 예상 클리어 횟수 <b>'+fmt(Math.ceil(expectedClears))+'회</b></div>'
       +'<div>유효장비 '+fmt(n)+'종 중 1종 이상 획득 확률 <b>'+validRate.toFixed(2)+'%</b></div>'
       +'<div>1종 이상 획득을 위한 이론상 클리어 횟수 <b>'+fmt(exp)+'회</b></div>'
-      +'<div>1종 이상 획득까지 이론상 일수(하루 3회 기준) <b>'+fmt(days)+'일</b></div>'
+      +'<div>1종 이상 획득까지 이론상 일수(하루 '+fmt(dailyAttempts)+'회 기준) <b>'+fmt(days)+'일</b></div>'
       +'<div class="drop-rate-secondary">'+stage+'단계 기업장비 등장확률 <b>'+rate+'%</b></div>'
       +'</div></div></div>';
   }).join('');
-  box.innerHTML='<div class="drop-rate-wrap"><div class="drop-rate-head"><div><h3>장비파밍 예상일자</h3></div><div class="drop-rate-pool"><label>랜덤 기업장비 종류 수</label><input type="number" min="1" max="100" value="'+pool+'" onchange="setDropRatePool(this.value)"></div></div><div class="drop-rate-grid">'+cards+'</div></div>';
+  box.innerHTML='<div class="drop-rate-wrap"><div class="drop-rate-head"><div><h3>장비파밍 예상일자</h3><div class="drop-rate-boost-info">싱크로 부스트 '+boostStage+'단계 · 하루 '+dailyAttempts+'회 (3단계는 2단계 보너스 누적)</div></div><div class="drop-rate-controls"><label class="drop-rate-boost"><span>싱크로 부스트 단계</span><select aria-label="싱크로 부스트 단계" onchange="setDropRateBoostStage(this.value)"><option value="1" '+(boostStage===1?'selected':'')+'>1단계 · 400레벨 이하 · 3회/일 (+0)</option><option value="2" '+(boostStage===2?'selected':'')+'>2단계 · 400~600레벨 · 4회/일 (+1)</option><option value="3" '+(boostStage===3?'selected':'')+'>3단계 · 500레벨 이상 · 5회/일 (누적 +2)</option></select></label><div class="drop-rate-pool"><label>랜덤 기업장비 종류 수</label><input type="number" min="1" max="100" value="'+pool+'" onchange="setDropRatePool(this.value)"></div></div></div><div class="drop-rate-grid">'+cards+'</div></div>';
 }
 let dropStagePopover=null;
 function closeDropStageMenu(){
@@ -5311,6 +5324,7 @@ function outsideDropStageOnce(e){
 function toggleDropRateDetails(btn){const buttons=document.querySelectorAll('.drop-rate-details-toggle');const details=document.querySelectorAll('.drop-rate-details');if(!buttons.length||!details.length)return;const show=[...details].some(el=>el.hidden);details.forEach(el=>{el.hidden=!show;});buttons.forEach(b=>{b.setAttribute('aria-expanded',show?'true':'false');b.textContent=show?'상세 내용 숨기기 −':'상세 내용 보기 ＋';});}
 function setDropRateStage(part,stage){dropRateSettings[part]=Number(stage)||9;saveDropRateSettings();renderDropRatePanel()}
 function setDropRatePool(v){dropRateSettings.pool=Math.max(1,Math.min(100,Number(v)||1));saveDropRateSettings();renderDropRatePanel()}
+function setDropRateBoostStage(v){const stage=Math.trunc(Number(v));if(![1,2,3].includes(stage))return;dropRateSettings.boostStage=stage;saveDropRateSettings();renderDropRatePanel()}
 let ownedCorporateExpanded=false;
 let ownedCorporateCompanyExpanded={};
 function toggleOwnedCorporatePanel(){
