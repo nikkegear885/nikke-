@@ -845,3 +845,117 @@ html.dark-theme .syn-resource-cards .syn-resource.syn-latest-goal .date{color:#f
 
 /* TEST 1.485: each goal summary metric on its own centered line */
 #syn-overall-days{white-space:pre-line;line-height:1.85;text-align:center}
+
+/* Production 1.523: synchronize summary grid rows and package cost columns. */
+.syn-top-grid > .syn-result-panel{
+  display:grid;
+  grid-template-rows:20px 42px 23px minmax(50px,auto);
+  align-content:center;
+  justify-items:center;
+  row-gap:3px;
+  padding:12px 10px;
+  text-align:center;
+}
+.syn-top-grid > .syn-result-panel .sub,
+.syn-top-grid > .syn-result-panel .big,
+.syn-top-grid > .syn-result-panel .foot,
+.syn-top-grid > .syn-result-panel .syn-jewel-usage,
+.syn-top-grid > .syn-result-panel .syn-jewel-placeholder{
+  width:100%;
+  min-width:0;
+  margin:0;
+  text-align:center;
+}
+.syn-top-grid > .syn-result-panel .sub,
+.syn-top-grid > .syn-result-panel .big{
+  align-self:center;
+}
+.syn-top-grid > .syn-result-panel .syn-jewel-usage,
+.syn-top-grid > .syn-result-panel .syn-jewel-placeholder{
+  height:23px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.syn-top-grid > .syn-result-panel .foot{
+  align-self:start;
+}
+#syn-overall-days{line-height:1.55}
+.syn-owned-panel input[type="number"]{
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+.syn-package-panel .syn-package-item,
+.syn-package-panel .syn-package-item.syn-no-choice{
+  grid-template-columns:minmax(0,1fr) 88px;
+  align-items:center;
+  gap:4px;
+  min-height:54px;
+}
+.syn-package-panel .syn-package-row-main{
+  display:grid;
+  grid-template-columns:112px minmax(0,1fr);
+  align-items:center;
+  gap:6px;
+  min-width:0;
+  width:100%;
+}
+.syn-package-panel .syn-package-toggle,
+.syn-package-panel .syn-package-item.syn-no-choice .syn-package-toggle{
+  grid-column:1;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+}
+.syn-package-panel .syn-package-efficiency{
+  grid-column:2;
+  display:grid;
+  grid-template-rows:22px 14px 14px;
+  row-gap:0;
+  min-height:50px;
+  min-width:0;
+  width:100%;
+  padding:0;
+  align-content:center;
+  flex:none;
+}
+.syn-package-panel .syn-package-values{
+  display:flex;
+  flex-wrap:wrap;
+  column-gap:6px;
+  row-gap:0;
+  min-height:22px;
+  margin:0;
+  align-content:center;
+}
+.syn-package-panel .syn-package-values .syn-package-value{
+  display:inline-flex;
+  align-items:baseline;
+  white-space:nowrap;
+  gap:2px;
+  line-height:1.1;
+}
+.syn-package-panel .syn-package-impact,
+.syn-package-panel .syn-package-spend{
+  display:block;
+  min-height:0;
+  margin:0;
+  line-height:14px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.syn-package-panel .syn-package-choice-wrap{
+  grid-column:2;
+  justify-self:end;
+  width:88px;
+}
+@media(max-width:450px){
+  .syn-package-panel .syn-package-row-main{
+    grid-template-columns:96px minmax(0,1fr);
+    gap:4px;
+  }
+  .syn-package-panel .syn-package-values{
+    column-gap:4px;
+  }
+}
