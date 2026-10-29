@@ -17,7 +17,7 @@
   const campaignMilestones=[{"mode":"normal","chapter":32,"level":221},{"mode":"normal","chapter":34,"level":231},{"mode":"normal","chapter":36,"level":241},{"mode":"normal","chapter":38,"level":251},{"mode":"normal","chapter":40,"level":281},{"mode":"normal","chapter":42,"level":301},{"mode":"normal","chapter":44,"level":321},{"mode":"normal","chapter":46,"level":331},{"mode":"normal","chapter":48,"level":341},{"mode":"hard","chapter":16,"level":241},{"mode":"hard","chapter":18,"level":261},{"mode":"hard","chapter":20,"level":281},{"mode":"hard","chapter":22,"level":301},{"mode":"hard","chapter":24,"level":321},{"mode":"hard","chapter":26,"level":341},{"mode":"hard","chapter":28,"level":350},{"mode":"hard","chapter":30,"level":361},{"mode":"hard","chapter":31,"level":381},{"mode":"hard","chapter":32,"level":461},{"mode":"hard","chapter":34,"level":481},{"mode":"hard","chapter":36,"level":501},{"mode":"hard","chapter":38,"level":521},{"mode":"hard","chapter":40,"level":581},{"mode":"hard","chapter":42,"level":601},{"mode":"hard","chapter":44,"level":621},{"mode":"hard","chapter":46,"level":641},{"mode":"hard","chapter":48,"level":681}];
   // Keep only verified automatic synchro-clear milestones; 49-50 remain unverified.
   const activeMilestones=()=>campaignMilestones;
-  const boxDurations=[1,2,8,12,24];
+  const boxDurations=[1,2,4,8,12,24];
   const clone=x=>JSON.parse(JSON.stringify(x));
   const fmt=(n,d=0)=>Number.isFinite(+n)?new Intl.NumberFormat("ko-KR",{maximumFractionDigits:d}).format(+n):"-";
   const safe=n=>Number.isFinite(+n)?+n:0;
@@ -87,17 +87,19 @@
       }
       if(Array.isArray(saved.ownedBoxes)&&saved.ownedBoxes.length===3&&
          saved.ownedBoxes.every(row=>Array.isArray(row)&&row.length===boxDurations.length)){
+        // The six-slot format is [1h,2h,4h,8h,12h,24h].
         state.ownedBoxes=saved.ownedBoxes.map(row=>row.map(value=>Math.max(0,safe(value))));
       }else if(Array.isArray(saved.ownedBoxes)&&saved.ownedBoxes.length===3&&
-               saved.ownedBoxes.every(row=>Array.isArray(row)&&row.length===6)){
-        // v1.449 stored [1h,2h,4h,8h,12h,24h]. Convert each 4h box
-        // into four 1h boxes while preserving all other denominations.
+               saved.ownedBoxes.every(row=>Array.isArray(row)&&row.length===5)){
+        // Preserve the v1.524 five-slot data [1h,2h,8h,12h,24h].
+        // Insert a new empty 4h slot without shifting existing denominations.
         state.ownedBoxes=saved.ownedBoxes.map(row=>[
-          Math.max(0,safe(row[0]))+4*Math.max(0,safe(row[2])),
+          Math.max(0,safe(row[0])),
           Math.max(0,safe(row[1])),
+          0,
+          Math.max(0,safe(row[2])),
           Math.max(0,safe(row[3])),
-          Math.max(0,safe(row[4])),
-          Math.max(0,safe(row[5]))
+          Math.max(0,safe(row[4]))
         ]);
       }else{
         // Legacy users previously entered their combined box-hours in one input.
