@@ -172,7 +172,6 @@
           <section class="syn-highlight syn-result-panel" aria-label="목표 달성 예상">
             <div class="sub">전체 목표 달성 예상</div>
             <div class="big" id="syn-overall-date">-</div>
-            <div class="syn-jewel-placeholder" aria-hidden="true"></div>
             <div class="foot" id="syn-overall-days">-</div>
           </section>
           <section class="syn-highlight syn-result-panel" aria-label="목표 달성까지 과금액">

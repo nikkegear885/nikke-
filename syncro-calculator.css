@@ -959,3 +959,9 @@ html.dark-theme .syn-resource-cards .syn-resource.syn-latest-goal .date{color:#f
     column-gap:4px;
   }
 }
+
+/* 1.524: start goal-duration details immediately beneath the target date. */
+#syn-overall-days{
+  grid-row:3 / span 2;
+  align-self:start;
+}
