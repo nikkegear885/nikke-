@@ -17,6 +17,7 @@
   const campaignMilestones=[{"mode":"normal","chapter":32,"level":221},{"mode":"normal","chapter":34,"level":231},{"mode":"normal","chapter":36,"level":241},{"mode":"normal","chapter":38,"level":251},{"mode":"normal","chapter":40,"level":281},{"mode":"normal","chapter":42,"level":301},{"mode":"normal","chapter":44,"level":321},{"mode":"normal","chapter":46,"level":331},{"mode":"normal","chapter":48,"level":341},{"mode":"hard","chapter":16,"level":241},{"mode":"hard","chapter":18,"level":261},{"mode":"hard","chapter":20,"level":281},{"mode":"hard","chapter":22,"level":301},{"mode":"hard","chapter":24,"level":321},{"mode":"hard","chapter":26,"level":341},{"mode":"hard","chapter":28,"level":350},{"mode":"hard","chapter":30,"level":361},{"mode":"hard","chapter":31,"level":381},{"mode":"hard","chapter":32,"level":461},{"mode":"hard","chapter":34,"level":481},{"mode":"hard","chapter":36,"level":501},{"mode":"hard","chapter":38,"level":521},{"mode":"hard","chapter":40,"level":581},{"mode":"hard","chapter":42,"level":601},{"mode":"hard","chapter":44,"level":621},{"mode":"hard","chapter":46,"level":641},{"mode":"hard","chapter":48,"level":681}];
   // Keep only verified automatic synchro-clear milestones; 49-50 remain unverified.
   const activeMilestones=()=>campaignMilestones;
+  const MAX_SIM_DAYS=6000;
   const boxDurations=[1,2,4,8,12,24];
   const clone=x=>JSON.parse(JSON.stringify(x));
   const fmt=(n,d=0)=>Number.isFinite(+n)?new Intl.NumberFormat("ko-KR",{maximumFractionDigits:d}).format(+n):"-";
@@ -161,12 +162,13 @@
             <div class="syn-box-head">1. 정보입력</div>
             <div class="syn-box-body">
               <div class="syn-form">
-                ${field("현재 싱크로 레벨","current",1,999)}
-                ${field("목표 싱크로 레벨","goal",2,1000)}
+                ${field("현재 싱크로 레벨","current",1,1200)}
+                ${field("목표 싱크로 레벨","goal",2,1200)}
                 ${field("전초기지 레벨","outpost",1,800)}
                 ${field("단기섬멸 횟수 / 일","sweep",1,11)}
                 <label class="syn-field">시작 날짜<input type="date" data-key="date" value="${escape(state.date)}"></label>
               </div>
+              <p id="syn-cost-estimate" class="syn-hint" hidden>1001~1200레벨 구간의 배틀데이터·크레딧 비용은 공개된 1,000개 단위 자료를 적용한 추정값입니다.</p>
               <p id="syn-outpost-discrepancy" class="syn-outpost-discrepancy" role="alert" hidden></p>
             </div>
           </section>
@@ -339,7 +341,7 @@
       progressLog.push({...ev,day,before,outpost:currentOutpost,actualGain:currentOutpost-before});
     }
   }
-  for(let day=1;day<=1500;day++){
+  for(let day=1;day<=MAX_SIM_DAYS;day++){
     // If the current synchro already exceeds a not-yet-cleared boss threshold,
     // complete it once as catch-up, without counting previous clears twice.
     applyReachedCheckpoints(day);
@@ -392,8 +394,8 @@
     const packages=onlyPackage===null?state.packages:state.packages.map((p,i)=>({
       ...p,on:Array.isArray(onlyPackage)?onlyPackage.includes(i):i===onlyPackage
     }));
-    const level=Math.min(999,Math.max(1,Math.trunc(safe(state.current))));
-    const goal=Math.min(1000,Math.max(2,Math.trunc(safe(state.goal))));
+    const level=Math.min(1200,Math.max(1,Math.trunc(safe(state.current))));
+    const goal=Math.min(1200,Math.max(2,Math.trunc(safe(state.goal))));
     const inputOutpost=Math.min(800,Math.max(1,Math.trunc(safe(state.outpost))));
     const stageDerivedOutpost=null;
     // Manual starting outpost is independent of the campaign level estimate.
@@ -481,7 +483,7 @@
           :saved<0?`${actual?"선택 효과":"추가 시"} ${fmt(-saved)}일 증가`
           :"전체 목표일 변화 없음";
       }else if(before.completeDay===null&&after.completeDay!==null){
-        impactText="패키지로 1,500일 내 목표 달성 가능";
+        impactText="패키지로 6,000일 내 목표 달성 가능";
       }else impactText="전체 목표일 산정 불가";
       const count=scenario.count[i]||0;
       const estimatedCost=scenario.completeDay!==null?count*safe(p.price):null;
@@ -520,6 +522,8 @@
 }
   function update(){
     const c=calculate();
+    const estimatedCostNote=el("syn-cost-estimate");
+    if(estimatedCostNote)estimatedCostNote.hidden=c.goal<=1000;
     const outpostInput=root.querySelector('input[data-key="outpost"]');
     if(outpostInput){
       outpostInput.disabled=false;
@@ -562,7 +566,7 @@
     }
     updateProgressOverview(c);
     el("syn-overall-date").textContent=c.invalidGoal?"목표 레벨 확인 필요":
-      c.completeDay===null?"1,500일 내 미도달":dateTxt(dateByDay(state.date,c.completeDay));
+      c.completeDay===null?"6,000일 내 미도달":dateTxt(dateByDay(state.date,c.completeDay));
     const freeSavings=free.completeDay!==null&&c.completeDay!==null?free.completeDay-c.completeDay:null;
     const compared=freeSavings===null?"":freeSavings>0?`\n무과금 대비 ${fmt(freeSavings)}일 단축`:"\n무과금 대비 기간 변화 없음";
     el("syn-overall-days").textContent=c.invalidGoal?"현재보다 높은 목표 레벨을 입력해 주세요":
@@ -573,7 +577,7 @@
     jewelEl.textContent=c.completeDay===null?"쥬얼 소모량 산정 불가":`쥬얼 소모량 ${fmt(dailyJewels*c.completeDay)}개`;
     jewelEl.title=`단기섬멸 ${Math.trunc(safe(state.sweep))}회/일 · 하루 ${fmt(dailyJewels)}쥬얼 · 1회 무료, 2회부터 회당 비용 적용`;
     el("syn-overall-sub").textContent=c.invalidGoal?"목표 레벨 입력을 확인해 주세요":
-      c.completeDay===null?"1,500일 내 목표 미도달 · 목표 달성 비용 산정 불가":
+      c.completeDay===null?"6,000일 내 목표 미도달 · 목표 달성 비용 산정 불가":
       "활성화된 패키지 구매 기준 · 목표 달성까지 합산";
     const finiteGoalDays=c.reached.filter(day=>Number.isFinite(day));
     const latestGoalDay=finiteGoalDays.length?Math.max(...finiteGoalDays):null;
@@ -582,9 +586,9 @@
       '<p class="syn-progress-tip">목표 레벨은 현재 레벨보다 높아야 합니다. 유효한 목표를 입력하면 재화별 예상 날짜가 표시됩니다.</p>':
       names.map((name,j)=>{
       const ratio=c.total[j]>0?Math.min(100,100*c.owned[j]/c.total[j]):100;
-      // A resource missing the 1500-day horizon is slower than any reached resource.
+      // A resource missing the 6000-day horizon is slower than any reached resource.
       const isLatest=hasUnreachedResource?c.reached[j]===null:latestGoalDay!==null&&c.reached[j]===latestGoalDay;
-      return `<article class="syn-resource${isLatest?" syn-latest-goal":""}"><div class="title">${name}</div><div class="date">${c.reached[j]===null?"1500일 내 미도달":dateTxt(dateByDay(state.date,c.reached[j]))}</div>
+      return `<article class="syn-resource${isLatest?" syn-latest-goal":""}"><div class="title">${name}</div><div class="date">${c.reached[j]===null?"6000일 내 미도달":dateTxt(dateByDay(state.date,c.reached[j]))}</div>
         <div class="metric"><span>소요 기간</span><strong>${c.reached[j]===null?"미도달":fmt(c.reached[j])+"일"}</strong></div>
         <div class="metric"><span>총 필요 재화</span><strong>${fmt(c.total[j])}</strong></div>
         <div class="metric"><span>보유 차감 후</span><strong>${fmt(c.needed[j])}</strong></div>
@@ -600,7 +604,7 @@
       '<tr><td colspan="5">현재 레벨과 목표 레벨을 확인해 주세요.</td></tr>';
     const status=el("syn-status");
     if(c.invalidGoal){status.hidden=false;status.classList.add("warn");status.textContent="목표 레벨은 현재 레벨보다 높아야 해요.";}
-    else if(c.completeDay===null){status.hidden=false;status.classList.add("warn");status.textContent="1500일 이내에 목표에 도달하지 못해요. 기본 수급량이나 패키지 설정을 확인해 주세요.";}
+    else if(c.completeDay===null){status.hidden=false;status.classList.add("warn");status.textContent="6000일 이내에 목표에 도달하지 못해요. 기본 수급량이나 패키지 설정을 확인해 주세요.";}
     else{status.hidden=true;status.classList.remove("warn");status.textContent="";}
 
   }
@@ -632,8 +636,8 @@
       else return;
     }else return;
     if(e.type==="change"){
-      if(x.dataset.key==="current")x.value=state.current=Math.min(999,Math.max(1,Math.trunc(state.current)));
-      if(x.dataset.key==="goal")x.value=state.goal=Math.min(1000,Math.max(2,Math.trunc(state.goal)));
+      if(x.dataset.key==="current")x.value=state.current=Math.min(1200,Math.max(1,Math.trunc(state.current)));
+      if(x.dataset.key==="goal")x.value=state.goal=Math.min(1200,Math.max(2,Math.trunc(state.goal)));
       if(x.dataset.key==="outpost")x.value=state.outpost=Math.min(800,Math.max(1,Math.trunc(state.outpost)));
       if(x.dataset.key==="sweep")x.value=state.sweep=Math.min(11,Math.max(1,Math.trunc(state.sweep)));
       if(["normalStartChapter","hardStartChapter"].includes(x.dataset.key))state[x.dataset.key]=Math.min(50,Math.max(0,Math.trunc(state[x.dataset.key])));
