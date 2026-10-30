@@ -494,7 +494,7 @@
       target.innerHTML=`
         <div class="syn-package-values">
           <span class="syn-package-value" title="재화별 충족일 단축 합계 ÷ 총 구매비용을 월정액 100%와 비교합니다. 전체 목표일 단축과 다를 수 있습니다.">가격 효율 <strong>${priceText}</strong></span>
-          <span class="syn-package-value" title="코더·배데·크레딧 각각의 충족일 단축 합계를 월정액 100%와 비교합니다. 전체 목표일 단축과 다를 수 있습니다.">재화별 단축 효율 <strong>${timeText}</strong></span>
+          <span class="syn-package-value" title="코더·배데·크레딧 각각의 충족일 단축 합계를 월정액 100%와 비교합니다. 전체 목표일 단축과 다를 수 있습니다.">기간 단축 효율 <strong>${timeText}</strong></span>
         </div>
         <div class="syn-package-impact" title="현재 선택 조합에서 이 패키지 하나의 차이를 비교합니다. 0일이면 다른 재화 병목 또는 일 단위 차이 때문일 수 있습니다.">${impactText}</div>
         <div class="syn-package-spend" title="${escape(hint)}">목표까지 예상 구매비용 ${estimatedCost===null?"산정 불가":fmt(estimatedCost)+"원"}</div>`;
