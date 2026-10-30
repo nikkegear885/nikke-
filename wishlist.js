@@ -331,6 +331,14 @@
   );
   // 160-wall X rule 2: prioritize these characters whenever they are below 3 breakthroughs.
   const WISHLIST_160_WALL_X_PRIORITY_NAMES = new Set(['티아','나가','리타','헬름','앨리스'].map(norm));
+  // 160-wall X: Drake takes Tia's slot only if Flora/Tove are both unowned,
+  // neither is excluded, and Drake is eligible. Otherwise Tia retains priority.
+  function is160WallXPriorityName(name,drakeInsteadOfTia){
+    const key=norm(name);
+    if(key===norm('티아')) return !drakeInsteadOfTia;
+    if(key===norm('드레이크')) return drakeInsteadOfTia;
+    return WISHLIST_160_WALL_X_PRIORITY_NAMES.has(key);
+  }
   const WISHLIST_GENERAL_NAMES = new Set(
     WISHLIST_PERFORMANCE_TIERS.filter(tier => tier.label === '범용캐').flatMap(tier => tier.names.map(norm))
   );
@@ -1004,6 +1012,25 @@
         }
       }
     }catch(_){}
+    // Recover previously-generated random-test accounts that have no saved owned-roster key.
+    // Never derive real-account ownership from the default RAW data.
+    if(account === TEST_ACCOUNT_NAME){
+      try{
+        const savedUnowned=localStorage.getItem(ACCOUNT_UNOWNED_PREFIX + encodeURIComponent(account));
+        const accountRows=(typeof data !== 'undefined' && Array.isArray(data)) ? data : [];
+        if(savedUnowned !== null && accountRows.length){
+          const unownedNames=JSON.parse(savedUnowned);
+          if(Array.isArray(unownedNames)){
+            const unownedSet=new Set(unownedNames.map(norm));
+            syncedOwnedRoster=new Set(accountRows
+              .map(row=>String(row && row['이름'] || '').trim())
+              .filter(name=>name && !unownedSet.has(norm(name)))
+              .map(norm));
+            return syncedOwnedRoster;
+          }
+        }
+      }catch(_){}
+    }
     // Backward compatibility for an older synced account whose roster key was not saved,
     // but whose account rows already contain the explicit sync marker.
     try{
@@ -1104,7 +1131,7 @@
       'body.wishlist-view #characterPanel,body.wishlist-view #kpis,body.wishlist-view #outpostPanel,body.wishlist-view #soleScorePanel,body.wishlist-view #pediaPanel{display:none!important}',
       'body.wishlist-view .topbar{display:none!important}',
       '#wishlistAccountSwitcher[hidden]{display:none!important}',
-      '#wishlistAccountSwitcher{display:flex;align-items:center;justify-content:flex-end;gap:6px;box-sizing:border-box;width:calc(100% - 24px);max-width:462px;margin:8px auto 8px;padding:0 2px;position:relative;z-index:20}',
+      '#wishlistAccountSwitcher{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:6px;box-sizing:border-box;width:calc(100% - 24px);max-width:462px;margin:8px auto 8px;padding:0 2px;position:relative;z-index:20}',
       '#wishlistAccountSwitcher .wl-account-label{margin-right:3px;color:#7c8795;font-size:10px;font-weight:900;white-space:nowrap}',
       '#wishlistAccountSwitcher .wl-account-button{min-width:58px;max-width:128px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:6px 11px;border:1px solid #c9d6e4;border-radius:999px;background:#fff;color:#586577;font-size:11px;font-weight:900;cursor:pointer;box-shadow:0 1px 3px rgba(27,55,85,.07)}',
       '#wishlistAccountSwitcher .wl-account-button.active{border-color:#159ed3;background:#eaf8ff;color:#087ca9;box-shadow:0 0 0 1px rgba(21,158,211,.10)}',
@@ -1483,7 +1510,10 @@
       const button = event.target.closest && event.target.closest('[data-wl-account]');
       if(!button) return;
       const account = button.dataset.wlAccount;
-      if(!account || !Array.isArray(ACCOUNTS) || !ACCOUNTS.includes(account)) return;
+      const validRealAccount=Array.isArray(ACCOUNTS) && ACCOUNTS.includes(account);
+      const validTestAccount=account===TEST_ACCOUNT_NAME &&
+        !!localStorage.getItem(ACCOUNT_STORAGE_PREFIX+encodeURIComponent(TEST_ACCOUNT_NAME));
+      if(!account || (!validRealAccount && !validTestAccount)) return;
       if(typeof window.switchAccount === 'function') window.switchAccount(account);
       renderAccountSwitcher();
     });
@@ -1497,6 +1527,9 @@
     const switcher = ensureAccountSwitcher();
     if(!switcher) return;
     const accounts = Array.isArray(ACCOUNTS) && ACCOUNTS.length ? ACCOUNTS.slice(0,2) : ['계정1','계정2'];
+    try{
+      if(localStorage.getItem(ACCOUNT_STORAGE_PREFIX+encodeURIComponent(TEST_ACCOUNT_NAME))) accounts.push(TEST_ACCOUNT_NAME);
+    }catch(_){}
     const current = typeof activeAccount !== 'undefined' ? activeAccount : accounts[0];
     switcher.innerHTML = '<span class="wl-account-label">계정</span>' + accounts.map((account,index) =>
       '<button type="button" class="wl-account-button' + (current === account ? ' active' : '') + '" data-wl-account="' + esc(account) + '" aria-pressed="' + (current === account ? 'true' : 'false') + '" data-wl-hover-text="' + esc(account) + '">' + esc(account || ('계정' + (index+1))) + '</button>'
@@ -1683,8 +1716,8 @@
           '<summary>무작위 계정 생성 규칙 조절</summary>' +
           '<div class="wl-random-settings-body">' +
             '<div class="wl-random-setting">' +
-              '<div class="wl-random-setting-head"><label for="wlRandomOwnedChance">니케 보유 확률</label><output data-wl-random-rule-value="ownedChance">60%</output></div>' +
-              '<input id="wlRandomOwnedChance" type="range" min="0" max="100" step="5" value="60" data-wl-random-rule="ownedChance">' +
+              '<div class="wl-random-setting-head"><label for="wlRandomOwnedChance">니케 보유 확률</label><output data-wl-random-rule-value="ownedChance">50%</output></div>' +
+              '<input id="wlRandomOwnedChance" type="range" min="0" max="100" step="5" value="50" data-wl-random-rule="ownedChance">' +
             '</div>' +
             '<div class="wl-random-setting">' +
               '<div class="wl-random-setting-head"><label for="wlRandomOneChance">1돌 확률</label><output data-wl-random-rule-value="breakthroughOneChance">25%</output></div>' +
@@ -2068,7 +2101,7 @@
 
   const RANDOM_ACCOUNT_RULES_STORAGE_KEY = 'nikke_random_test_account_rules_v1';
   const RANDOM_ACCOUNT_RULE_DEFAULTS = {
-    ownedChance:60,
+    ownedChance:50,
     breakthroughOneChance:25,
     breakthroughTwoChance:10,
     breakthroughThreeChance:5
@@ -2202,6 +2235,14 @@
       alert('캐릭터 데이터를 불러오지 못했습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.');
       return;
     }
+    // Drake replaces Tia only when both Flora/Tove are unowned, not excluded,
+    // and Drake is neither excluded nor already completed.
+    const drakeInsteadOfTia160WallX = wallStatus === 'X' &&
+      isMarkedUnowned('플로라') && isMarkedUnowned('토브') &&
+      !isManuallyExcludedCharacter('플로라') &&
+      !isManuallyExcludedCharacter('토브') &&
+      !isManuallyExcludedCharacter('드레이크') &&
+      getBreakthrough('드레이크') < 3 && getCoreEnhancement('드레이크') < 7;
     const overLimitFavorites = STANDARD_PRIORITY_COMPANIES.map(company => ({
       company,
       names: getCharactersForCompany(company)
@@ -2222,7 +2263,7 @@
           .map(row => String(row['이름'] || '').trim())
           .filter(name => {
             const key = norm(name);
-            const isNamedPriority = WISHLIST_160_WALL_X_PRIORITY_NAMES.has(key);
+            const isNamedPriority = is160WallXPriorityName(name,drakeInsteadOfTia160WallX);
             const isUnownedRequired = isMarkedUnowned(name) &&
               (WISHLIST_REQUIRED_NAMES.has(key) || WISHLIST_TREASURE_REQUIRED_NAMES.has(key) || WISHLIST_UNOWNED_REQUIRED_OVERRIDE_NAMES.has(key));
             return !isManuallyExcludedCharacter(name) && (isNamedPriority || isUnownedRequired) && getBreakthrough(name) < 3;
@@ -2250,7 +2291,7 @@
           // Rule 2: the five named targets are forced in below 3 breakthroughs regardless of ownership.
           // Rule 3: company-required and mandatory-treasure characters are forced in only while unowned.
           // Once a first copy is owned, they leave rule 3 and are ranked by rule 4 instead.
-          const is160WallXPriorityTarget = WISHLIST_160_WALL_X_PRIORITY_NAMES.has(key);
+          const is160WallXPriorityTarget = is160WallXPriorityName(name,drakeInsteadOfTia160WallX);
           const isUnownedRequired160WallX = unowned && (isRequired || isTreasureRequired);
           const forceInclude160WallX = wallStatus === 'X' &&
             (is160WallXPriorityTarget || isUnownedRequired160WallX);
@@ -2259,6 +2300,8 @@
           const is160WallXSilverMileageTwoBreakthrough =
             wallStatus === 'X' && copyPriority === 1 && SILVER_MILEAGE_NAMES.has(key) && breakthrough === 2;
 
+          // While Drake takes the special slot, Tia must not enter as a normal fallback.
+          if(drakeInsteadOfTia160WallX && key === norm('티아')) return false;
           // 160-wall X always excludes 3-breakthrough characters.
           if(wallStatus === 'X' && breakthrough >= 3) return false;
           if(getCoreEnhancement(name) >= 7 && !forceInclude160WallX) return false;
@@ -2284,8 +2327,8 @@
         // Rule 4 uses the visible silver-mileage list; non-silver characters only enter Rule 4 at 2★,
         // and only when they are not already in Rule 3. O mode keeps the existing ordering unchanged.
         if(wallStatus === 'X'){
-          const aNamedPriority160WallX = WISHLIST_160_WALL_X_PRIORITY_NAMES.has(norm(aName));
-          const bNamedPriority160WallX = WISHLIST_160_WALL_X_PRIORITY_NAMES.has(norm(bName));
+          const aNamedPriority160WallX = is160WallXPriorityName(aName,drakeInsteadOfTia160WallX);
+          const bNamedPriority160WallX = is160WallXPriorityName(bName,drakeInsteadOfTia160WallX);
           if(aNamedPriority160WallX !== bNamedPriority160WallX) return aNamedPriority160WallX ? -1 : 1;
 
           const aMustInclude160WallX = aUnowned &&
