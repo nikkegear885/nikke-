@@ -68,6 +68,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
 .syn-actions{display:flex;align-items:center;gap:9px}
 .syn-btn{min-height:35px;border:1px solid var(--sy-field-border);background:var(--sy-card);color:var(--sy-title);border-radius:8px;padding:7px 13px;font-size:13px;font-weight:800}
 .syn-btn:hover{border-color:var(--sy-accent);background:var(--sy-card-alt)}
+.syn-source-link{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;white-space:nowrap;cursor:pointer}
 .syn-note{color:var(--sy-muted);font-size:13px}
 .syn-box{margin:0 0 16px;border:1px solid var(--sy-line);border-radius:12px;background:var(--sy-card);overflow:hidden}
 .syn-box-head,.syn-box>summary{padding:13px 17px;background:var(--sy-head);font-size:16px;font-weight:900;color:var(--sy-title);list-style:none}

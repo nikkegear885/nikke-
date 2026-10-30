@@ -154,7 +154,7 @@
     <div class="syn-wrap">
       <h1 class="syn-sr-only">싱크로 레벨업 계산기</h1>
       <div class="syn-utility">
-        <div class="syn-actions"><button class="syn-btn" id="syn-reset" type="button">입력값 초기화</button></div>
+        <div class="syn-actions"><button class="syn-btn" id="syn-reset" type="button">입력값 초기화</button><a class="syn-btn syn-source-link" href="https://gall.dcinside.com/mgallery/board/view/?id=gov&amp;no=6384055&amp;fcno=31685265&amp;fpno=31617879" target="_blank" rel="noopener noreferrer">참고한 자료</a></div>
       </div>
       <div id="syn-output">
         <div class="syn-top-grid">
