@@ -348,6 +348,10 @@ function getRawCorp(char, slot) {
 
 
 const SERVICE_SESSION_KV_KEY = 'blablalink-service-session-v1';
+const SERVICE_RELOGIN_MESSAGE = '공용 BlaBlaLink 서비스 세션이 무효화되었습니다. 관리자에게 서비스 계정 재로그인과 Cloudflare Worker BLABLALINK_GAME_* Secret 갱신이 필요합니다. 일반 사용자는 Tampermonkey로 본인의 로그인 세션을 이용해 동기화할 수 있습니다.';
+function isInvalidInnerToken(message){
+  return /(?:\bret\s*=\s*11002\b|inner\s+token\s+is\s+invalid)/i.test(String(message || ''));
+}
 const SERVICE_SESSION_FIELDS = Object.freeze([
   ['gameToken','BLABLALINK_GAME_TOKEN'],
   ['gameOpenId','BLABLALINK_GAME_OPENID'],
@@ -503,9 +507,13 @@ async function renewServiceSession(env, current){
   try{ payload = await response.json(); }catch(_){}
   if(!response.ok || Number(payload?.code) !== 0){
     const reason = String(payload?.message || payload?.msg || '').trim();
-    const err = new Error('BlaBlaLink 세션 자동 갱신에 실패했습니다.' + (reason ? ' (' + reason.slice(0,160) + ')' : ''));
-    err.sync_type = 'service_session_refresh_failed';
-    err.status = 502;
+    const reloginRequired = isInvalidInnerToken(reason) ||
+      isInvalidInnerToken(payload?.msg) || Number(payload?.ret) === 11002;
+    const err = new Error(reloginRequired
+      ? SERVICE_RELOGIN_MESSAGE
+      : 'BlaBlaLink 세션 자동 갱신에 실패했습니다.' + (reason ? ' (' + reason.slice(0,160) + ')' : ''));
+    err.sync_type = reloginRequired ? 'service_session_relogin_required' : 'service_session_refresh_failed';
+    err.status = reloginRequired ? 503 : 502;
     err.http_status = response.status;
     err.code = Number.isFinite(Number(payload?.code)) ? Number(payload.code) : null;
     throw err;
@@ -620,14 +628,28 @@ async function callNikkeGameApiWithSessionRecovery(api, body, env, session){
     return {result, session};
   }
 
+  // A parallel request or scheduled refresh may already have stored a newer token.
+  // Prefer that token before rotating a stale copy of the shared session.
+  const latestSession = await getServiceSession(env);
+  if(latestSession.gameToken !== session.gameToken ||
+     latestSession.gameOpenId !== session.gameOpenId){
+    const latestResult = await callNikkeGameApi(api, body, latestSession);
+    if(latestResult.code !== BLABLALINK_INVALID_TOKEN_CODE){
+      console.log('[service-session] recovered using a newer KV session');
+      return {result:latestResult, session:latestSession};
+    }
+  }
   let refreshed;
   try{
-    refreshed = await renewServiceSession(env, session);
+    refreshed = await renewServiceSession(env, latestSession);
     console.log('[service-session] invalid token; renewal succeeded, retrying NIKKE API');
   }catch(refreshError){
+    const reloginRequired = refreshError?.sync_type === 'service_session_relogin_required';
     const detail = String(refreshError?.message || '자동 세션 갱신에 실패했습니다.');
-    const err = new Error('NIKKE API가 서비스 세션을 거부했고 자동 갱신도 실패했습니다: ' + detail);
-    err.sync_type = 'service_session_refresh_failed';
+    const err = new Error(reloginRequired
+      ? SERVICE_RELOGIN_MESSAGE
+      : 'NIKKE API가 서비스 세션을 거부했고 자동 갱신도 실패했습니다: ' + detail);
+    err.sync_type = reloginRequired ? 'service_session_relogin_required' : 'service_session_refresh_failed';
     err.status = 503;
     err.code = result.code;
     err.http_status = result.http_status;
@@ -1016,7 +1038,7 @@ async function syncPublicNikkeProfile(profileUrl, env, requestedAreaInput){
 
   return {
     ok:true,
-    worker_version:'session-renewal-1.1.0',
+    worker_version:'session-renewal-1.1.1',
     intl_open_id:intlOpenId,
     area_id:selected.area_id,
     nickname:profile.username || '',
@@ -1114,7 +1136,7 @@ export default {
       }
       return json({
         ok:true,
-        worker_version:'session-renewal-1.1.0',
+        worker_version:'session-renewal-1.1.1',
         skill_fields:['skill1','skill2','burstSkill'],
         deployed_check:true
       }, 200);
@@ -1200,18 +1222,17 @@ export default {
           const decoded = decodeOpenIdFromProfileUrl(profileUrl);
           const intlOpenId = extractIntlOpenId(decoded);
           let session = await getServiceSession(env);
-
-          // Deliberately test both the renewal endpoint and a read-only NIKKE API call.
-          session = await renewServiceSession(env, session);
-          console.log('[service-session] preflight refresh succeeded');
-
+          const initialGameToken = session.gameToken;
+          // Read-only validation first: rotate only when NIKKE rejects the token.
           const areasChecked = [];
           for(const areaId of NIKKE_AREAS){
-            const result = await callNikkeGameApi(
+            const recovered = await callNikkeGameApiWithSessionRecovery(
               NIKKE_CHARACTERS_API,
               {intl_open_id:intlOpenId, nikke_area_id:areaId},
-              session
+              env, session
             );
+            session = recovered.session;
+            const result = recovered.result;
             areasChecked.push({
               area_id:areaId,
               http_status:result.http_status,
@@ -1232,9 +1253,9 @@ export default {
               return json({
                 ok:true,
                 sync_type:'service_session_valid',
-                message:'세션 갱신과 NIKKE 데이터 API 인증이 모두 정상입니다. 계정 데이터는 변경하지 않았습니다.',
+                message:'현재 서비스 세션의 NIKKE 데이터 API 인증이 정상입니다. 계정 데이터는 변경하지 않았습니다.',
                 checked_area:areaId,
-                session_refreshed:true
+                session_refreshed:session.gameToken !== initialGameToken
               }, 200);
             }
           }
@@ -1242,7 +1263,7 @@ export default {
           return json({
             ok:false,
             sync_type:'session_check_inconclusive',
-            message:'세션 갱신은 성공했지만 NIKKE 데이터 API에서 조회 가능한 지역을 확인하지 못했습니다. 공개 프로필의 NIKKE 로스터 및 지역 설정을 확인해 주세요.',
+            message:'서비스 세션 검사에서 조회 가능한 NIKKE 지역을 확인하지 못했습니다. 공개 프로필의 NIKKE 로스터 및 지역 설정을 확인해 주세요.',
             areas_checked:areasChecked
           }, 502);
         }catch(e){
