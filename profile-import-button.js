@@ -172,6 +172,11 @@
           '</div>' +
           '<button type="button" class="bl-direct-check">서비스 세션 유효성 확인 · 계정 데이터 변경 없음</button>' +
           '<div class="bl-direct-status" id="blDirectStatus"></div>' +
+          '<div class="bl-direct-browser-recovery" hidden style="margin-top:10px;padding:10px;border:1px solid #d5ab68;border-radius:8px">' +
+            '<div style="font-size:11px;line-height:1.6;margin-bottom:7px">공용 세션에 문제가 있습니다. Tampermonkey 스크립트가 설치되어 있다면 본인의 BlaBlaLink 로그인으로 동기화할 수 있습니다. 올바른 게임 계정에 로그인한 상태인지 먼저 확인해 주세요.</div>' +
+            '<button type="button" class="bl-direct-browser-sync">내 로그인으로 동기화 (Tampermonkey)</button> ' +
+            '<a href="https://raw.githubusercontent.com/nikkegear885/nikke-/main/blablalink-sync.user.js" target="_blank" rel="noopener noreferrer">동기화 스크립트 확인/설치</a>' +
+          '</div>' +
           '<div class="bl-direct-note">비밀번호·Cookie·game_token은 이 사이트에 입력하지 않습니다. 사이트의 동기화 서버가 별도 서비스 세션으로 공개 프로필을 조회합니다.</div>' +
           '<div class="bl-direct-profile" id="blDirectProfile" hidden>' +
             '<img id="blDirectAvatar" alt="">' +
@@ -184,6 +189,27 @@
       '</div>';
 
     document.body.appendChild(overlay);
+
+    function updateBrowserRecovery(payload){
+      var section=overlay.querySelector('.bl-direct-browser-recovery');
+      if(!section) return;
+      var reason=String(payload && payload.message || '');
+      var kind=String(payload && payload.sync_type || '');
+      section.hidden = !(kind === 'service_session_relogin_required' ||
+        kind === 'service_session_refresh_rejected' ||
+        /(?:ret\s*=\s*11002|inner\s+token\s+is\s+invalid)/i.test(reason));
+    }
+    overlay.querySelector('.bl-direct-browser-sync').addEventListener('click',function(){
+      var account=targetAccount || getAccounts()[0] || '계정1';
+      if(typeof window.startBlablalinkSync !== 'function'){
+        var status=overlay.querySelector('#blDirectStatus');
+        status.className='bl-direct-status error';
+        status.textContent='브라우저 동기화 기능을 불러오지 못했습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.';
+        return;
+      }
+      overlay.classList.remove('open');
+      window.startBlablalinkSync(account);
+    });
 
     function close(){
       overlay.classList.remove('open');
@@ -231,11 +257,12 @@
       checkButton.disabled = true;
       primary.disabled = true;
       status.className = 'bl-direct-status';
-      status.textContent = '서비스 세션을 갱신하고 NIKKE API 인증을 읽기 전용으로 확인하는 중…';
+      status.textContent = '서비스 세션의 NIKKE API 인증을 읽기 전용으로 검사하는 중…';
 
       try{
         var checkResult = await requestSessionCheck(url);
         var payload = checkResult.payload;
+        updateBrowserRecovery(payload);
         if(!checkResult.responseOk || !payload || payload.ok !== true){
           throw new Error((payload && payload.message) || '세션 유효성 확인에 실패했습니다.');
         }
@@ -299,6 +326,7 @@
 
       working = true;
       primary.disabled = true;
+      updateBrowserRecovery(null);
       card.hidden = true;
       status.className = 'bl-direct-status';
       status.textContent = '프로필과 NIKKE 장비 정보를 조회하는 중…';
@@ -313,6 +341,7 @@
         });
 
         var payload = await response.json().catch(function(){ return {}; });
+        updateBrowserRecovery(payload);
         if(!response.ok || payload.ok !== true){
           if(payload.sync_type === 'multiple_rosters' && Array.isArray(payload.candidates) && payload.candidates.length > 1){
             if(regionSelect){
