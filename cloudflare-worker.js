@@ -348,7 +348,7 @@ function getRawCorp(char, slot) {
 
 
 const SERVICE_SESSION_KV_KEY = 'blablalink-service-session-v1';
-const SERVICE_RELOGIN_MESSAGE = '공용 BlaBlaLink 서비스 세션이 무효화되었습니다. 관리자에게 서비스 계정 재로그인과 Cloudflare Worker BLABLALINK_GAME_* Secret 갱신이 필요합니다. 일반 사용자는 Tampermonkey로 본인의 로그인 세션을 이용해 동기화할 수 있습니다.';
+const SERVICE_RELOGIN_MESSAGE = 'BlaBlaLink 공용 서비스 세션이 무효화되었습니다. 관리자에게 서비스 계정 재로그인 후 Cloudflare Worker의 BLABLALINK_GAME_* Secret을 동일한 최신 로그인 세션의 값으로 갱신하도록 요청해 주세요. 기존 공개 프로필 URL 동기화 방식은 유지됩니다.';
 function isInvalidInnerToken(message){
   return /(?:\bret\s*=\s*11002\b|inner\s+token\s+is\s+invalid)/i.test(String(message || ''));
 }
