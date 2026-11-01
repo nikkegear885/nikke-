@@ -7,6 +7,7 @@
   const names=["코어더스트","배틀데이터","크레딧"];
   const currencyNames=["코더","배데","크레딧"];
   const storageKey="nikke-syncro-calc-prod-v1";
+  const accountLevelScopeKey="nikke-syncro-calc-prod-level-scope-v1";
   // Exact stage list copied from the site's existing OUTPOST_CHAPTER_STAGES table.
   // This includes A/B branches. One completed entry = one cleared stage.
   const campaignStages=SOURCE.campaignStages;
@@ -159,7 +160,7 @@
       <div id="syn-output">
         <div class="syn-top-grid">
           <section class="syn-box syn-input-panel">
-            <div class="syn-box-head">1. 정보입력</div>
+            <div class="syn-box-head syn-input-head"><span>1. 정보입력</span><button class="syn-apply-my-synchro" id="syn-apply-my-synchro" type="button" title="현재 선택한 계정의 싱크로·전초기지 레벨을 적용합니다">내 계정 상태 적용</button></div>
             <div class="syn-box-body">
               <div class="syn-form">
                 ${field("현재 싱크로 레벨","current",1,1200)}
@@ -168,6 +169,7 @@
                 ${field("단기섬멸 횟수 / 일","sweep",1,11)}
                 <label class="syn-field">시작 날짜<input type="date" data-key="date" value="${escape(state.date)}"></label>
               </div>
+              <p id="syn-level-sync-status" class="syn-hint" role="status"></p>
               <p id="syn-cost-estimate" class="syn-hint" hidden>1001~1200레벨 구간의 배틀데이터·크레딧 비용은 공개된 1,000개 단위 자료를 적용한 추정값입니다.</p>
               <p id="syn-outpost-discrepancy" class="syn-outpost-discrepancy" role="alert" hidden></p>
             </div>
@@ -650,6 +652,16 @@
   root.addEventListener("input",onEdit);
   root.addEventListener("change",onEdit);
   root.addEventListener("click",e=>{
+    if(e.target.closest("#syn-apply-my-synchro")){
+      const note=el("syn-level-sync-status");
+      if(note)note.textContent="현재 계정의 싱크로·전초기지 레벨을 확인하는 중…";
+      if(parent!==window){
+        parent.postMessage({type:"nikke-gm-request-my-synchro"},location.origin);
+      }else if(note){
+        note.textContent="계정 화면에서 계산기를 열면 싱크로·전초기지 레벨을 적용할 수 있습니다.";
+      }
+      return;
+    }
     const bulk=e.target.closest("[data-bulk-target][data-bulk-set]");
     if(bulk){
       const target=bulk.dataset.bulkTarget,checked=bulk.dataset.bulkSet==="all";
@@ -666,6 +678,84 @@
       state=defaults();try{localStorage.removeItem(storageKey);}catch(e){}
       render();
     }
+  });
+  function validImportedLevel(v,max){
+    if(v===null||v===undefined||v==='')return null;
+    const n=Number(v);
+    return Number.isInteger(n)&&n>=1&&n<=max?n:null;
+  }
+  function applyImportedLevels(data){
+    const name=String(data.account||'');
+    if(!name)return;
+    let prior=null;
+    try{prior=JSON.parse(localStorage.getItem(accountLevelScopeKey)||'null');}catch(_){}
+    const b=data.baseline;
+    const importedCurrent=validImportedLevel(b?.synchroLevel,1200);
+    const importedOutpost=validImportedLevel(b?.outpostLevel,800);
+    if(!b||b.account!==name||(importedCurrent===null&&importedOutpost===null)){
+      // Do not carry a previously synced account's levels into an unlinked slot.
+      if(prior?.account&&prior.account!==name){
+        const basic=defaults();
+        state.current=basic.current;
+        state.outpost=basic.outpost;
+        try{localStorage.setItem(accountLevelScopeKey,JSON.stringify({account:name}));}catch(_){}
+        try{localStorage.setItem(storageKey,JSON.stringify(state));}catch(_){}
+        render();
+      }
+      const note=el("syn-level-sync-status");
+      if(note)note.textContent="현재 계정의 동기화된 레벨이 없습니다. 직접 입력할 수 있습니다.";
+      return;
+    }
+    if(importedCurrent!==null)state.current=importedCurrent;
+    if(importedOutpost!==null)state.outpost=importedOutpost;
+    try{
+      localStorage.setItem(accountLevelScopeKey,JSON.stringify({account:name,areaId:b.areaId,profileId:b.profileId}));
+      localStorage.setItem(storageKey,JSON.stringify(state));
+    }catch(_){}
+    render();
+    const note=el("syn-level-sync-status");
+    if(note)note.textContent="계정 "+name+" · 자동 입력: 싱크로 "+(importedCurrent??"미공개")+" / 전초기지 "+(importedOutpost??"미공개")+" (캠페인 진행도 자동 조회 없음)";
+  }
+  window.addEventListener("message",event=>{
+    if(parent===window||event.origin!==location.origin||event.source!==parent)return;
+    if(event.data?.type==="nikke-gm-my-synchro"){
+      const synchro=validImportedLevel(event.data.synchroLevel,1200);
+      const outpost=validImportedLevel(event.data.outpostLevel,800);
+      const note=el("syn-level-sync-status");
+      if(synchro===null&&outpost===null){
+        if(note)note.textContent=String(event.data.message||"동기화된 싱크로·전초기지 레벨이 없습니다. 먼저 계정을 동기화해 주세요.");
+        return;
+      }
+      // Apply only valid, account-scoped levels. Goal, owned resources and all
+      // other calculator settings must remain exactly as the user entered them.
+      if(synchro!==null)state.current=synchro;
+      if(outpost!==null)state.outpost=outpost;
+      const currentInput=root.querySelector('input[data-key="current"]');
+      const outpostInput=root.querySelector('input[data-key="outpost"]');
+      if(currentInput&&synchro!==null)currentInput.value=String(synchro);
+      if(outpostInput&&outpost!==null)outpostInput.value=String(outpost);
+      try{
+        localStorage.setItem(storageKey,JSON.stringify(state));
+        localStorage.setItem(accountLevelScopeKey,JSON.stringify({
+          account:String(event.data.account||""),
+          areaId:event.data.areaId,
+          profileId:event.data.profileId
+        }));
+      }catch(_){}
+      update();
+      if(note){
+        const changed=[
+          synchro!==null?"싱크로 Lv."+synchro:null,
+          outpost!==null?"전초기지 Lv."+outpost:null
+        ].filter(Boolean).join(" / ");
+        note.textContent="계정 "+String(event.data.account||"")+" · "+changed+
+          " 적용 완료 (목표 레벨·보유 재화 유지)"+
+          (synchro===null||outpost===null?" · 미조회 항목은 기존값 유지":"");
+      }
+      return;
+    }
+    if(event.data?.type!=="nikke-gm-calculator-levels")return;
+    applyImportedLevels(event.data);
   });
   render();
 })();
