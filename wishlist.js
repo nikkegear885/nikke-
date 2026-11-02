@@ -257,10 +257,11 @@
     return positions;
   })();
   // D: Killer Wife depends on Red Hood Rapi and D ownership in the active account.
-  // No Red Hood Rapi: general tier; with Rapi: unowned D is solo, owned D is namecard.
+  // No Red Hood Rapi: unowned D is general, owned D is solo.
+  // With Rapi: unowned D is solo, owned D is namecard.
   const KILLER_WIFE_NAME = 'D : 킬러 와이프';
   function getKillerWifePriority(unowned){
-    if(isMarkedUnowned('라피 : 레드 후드')) return 3;
+    if(isMarkedUnowned('라피 : 레드 후드')) return unowned ? 3 : 6;
     return unowned ? 6 : 8;
   }
   function getWishlistPerformancePosition(name){
@@ -2374,6 +2375,17 @@
         const aGroup = getWishlistAutoBuildPriority(aName,copyPriority,aBreakthrough,aUnowned);
         const bGroup = getWishlistAutoBuildPriority(bName,copyPriority,bBreakthrough,bUnowned);
         if(aGroup !== bGroup) return aGroup - bGroup;
+
+        // In the Solo Raid tier, D: Killer Wife keeps its position immediately before Delta,
+        // including when D is already owned and Delta is not. Do this before the usual
+        // unowned-first tiebreak so ownership cannot reverse that explicit order.
+        if(aGroup === 6 && bGroup === 6 &&
+          (norm(aName) === norm(KILLER_WIFE_NAME) || norm(bName) === norm(KILLER_WIFE_NAME))){
+          const aPos = getWishlistPerformancePosition(aName);
+          const bPos = getWishlistPerformancePosition(bName);
+          if(aPos && bPos && aPos.rank === 6 && bPos.rank === 6 &&
+             aPos.index !== bPos.index) return aPos.index - bPos.index;
+        }
 
         // Preserve the original treasure-target and owned-copy breakthrough tiebreakers in O mode.
         // Under 160-wall X, breakthrough ranking is handled explicitly by Rule 4 above; do not
