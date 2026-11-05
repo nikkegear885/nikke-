@@ -4952,14 +4952,6 @@ function applyBlablalinkSyncPayload(p,targetAccount){
     syncAccount===activeAccount ? [...unownedCharacters] : [...loadAccountUnowned(syncAccount)]
   );
   const targetData=syncAccount===activeAccount?data:readAccountData(syncAccount);
-  let clearedSkillCount=0;
-  for(const row of Array.isArray(targetData)?targetData:[]){
-    if(!row||typeof row!=='object')continue;
-    for(const key of ['스킬1','스킬2','버스트스킬']){
-      if(row[key]!==null){row[key]=null;clearedSkillCount++}
-    }
-  }
-  console.info('[NIKKE GM] Skill values cleared before sync',{targetAccount:syncAccount,clearedSkillCount});
   const preservedSelectedNames=new Set(
     (syncAccount===activeAccount ? selectedCharacters : loadAccountSelection(syncAccount))
       ? [...(syncAccount===activeAccount ? selectedCharacters : loadAccountSelection(syncAccount))]
@@ -4967,8 +4959,31 @@ function applyBlablalinkSyncPayload(p,targetAccount){
           .filter(Boolean)
       : []
   );
-  const normalizeRosterName=name=>String(name??'').normalize('NFKC').toLowerCase().replace(/[\s:：·•._'’“”"\-–—()\[\]{}]/g,'');
+  const normalizeRosterName=name=>String(name??'').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
   const byName=new Map(targetData.map((r,i)=>[normalizeRosterName(r?.['이름']),i]));
+  if(p.sync_type==='scriptless_external'){
+    // Validate all known-character details before writing to the active account.
+    const rows=Array.isArray(p.updates)?p.updates:[];
+    const keys=rows.map(u=>normalizeRosterName(canonicalSyncCharacterName(u?.name,u?.name_code??u?.nameCode)));
+    if(!keys.length||keys.some(k=>!byName.has(k))||new Set(keys).size!==keys.length||
+       !Array.isArray(p.ownedNames)||p.ownedNames.length!==keys.length){
+      throw new Error('외부 API 니케 정보를 사이트 데이터와 일치시킬 수 없어 저장하지 않았습니다.');
+    }
+    for(const u of rows){
+      if(!u.parts||typeof u.parts!=='object'||!gearParts.every(part=>u.parts[part]&&Array.isArray(u.parts[part].options)))
+        throw new Error('외부 API의 장비 상세 항목이 누락되어 기존 데이터를 유지했습니다.');
+      if([u.skill1,u.skill2,u.burstSkill].some(v=>v===null||v===undefined||!Number.isFinite(Number(v))))
+        throw new Error('외부 API의 스킬 정보가 불완전해 기존 데이터를 유지했습니다.');
+      if(gearParts.some(part=>u.parts[part].options.some(opt=>!opt||!['우코','공증','장탄','크확','크댐','명중','차댐','차속','방어'].includes(opt.name)||!Number.isFinite(Number(opt.value)))))
+        throw new Error('외부 API의 오버로드 옵션 정보가 올바르지 않아 저장하지 않았습니다.');
+    }
+  }
+  // Previous recorded skills are cleared only after the complete payload passes validation.
+  // Existing legacy-sync semantics are preserved for the separate session-check flow.
+  for(const row of targetData){
+    if(!row||typeof row!=='object')continue;
+    for(const key of ['스킬1','스킬2','버스트스킬'])row[key]=null;
+  }
   let matched=0,changed=0,skillDataCount=0,gearDataCount=0;
   const syncedIndices=new Set();
   for(const u of Array.isArray(p.updates)?p.updates:[]){
@@ -4983,7 +4998,22 @@ function applyBlablalinkSyncPayload(p,targetAccount){
       const rawCorp=normalizeSyncCorp(raw);
       const tier=normalizeSyncNumber(raw&&typeof raw==='object'?(raw.tier??raw.equip_tier):null);
       const level=normalizeSyncNumber(raw&&typeof raw==='object'?(raw.level??raw.equip_lv):null);
-      if(rawCorp){
+      if(p.sync_type==='scriptless_external'){
+        // Empty slots and replaced gear must remove old corporate markers and overload options.
+        const corporation=rawCorp||'';
+        const key=part+'_기업장비';
+        if(String(r[key]??'')!==corporation){r[key]=corporation;changed++}
+        const options=raw.options;
+        for(let k=1;k<=3;k++){
+          const option=options[k-1]||null;
+          const optionName=option?option.name:null;
+          const optionValue=option?Number(option.value):null;
+          const nameKey=part+'_옵'+k,valueKey=nameKey+'값';
+          if(r[nameKey]!==optionName){r[nameKey]=optionName;changed++}
+          if(r[valueKey]!==optionValue){r[valueKey]=optionValue;changed++}
+        }
+        hasGearData=true;
+      }else if(rawCorp){
         hasGearData=true;
         const key=part+'_기업장비';
         if(String(r[key]??'')!==rawCorp){r[key]=rawCorp;changed++}
@@ -4997,6 +5027,20 @@ function applyBlablalinkSyncPayload(p,targetAccount){
         hasGearData=true;
         const key=part+'_레벨';
         if(num(r[key])!==level){r[key]=level;changed++}
+      }
+    }
+
+    if(p.sync_type==='scriptless_external'){
+      // Recompute the 9 overload option totals from returned equipped gear.
+      const optionKeys={'우코':'우코(%)','공증':'공증(%)','장탄':'장탄(%)','크확':'크확(%)','크댐':'크댐(%)','명중':'명중(%)','차댐':'차댐(%)','차속':'차속(%)','방어':'방어(%)'};
+      const totals=Object.fromEntries(Object.values(optionKeys).map(key=>[key,0]));
+      for(const part of gearParts){
+        for(const option of u.parts[part].options){
+          totals[optionKeys[option.name]]+=Number(option.value);
+        }
+      }
+      for(const [key,value] of Object.entries(totals)){
+        if(Number(r[key])!==value){r[key]=value;changed++}
       }
     }
 
@@ -5180,7 +5224,7 @@ function applyBlablalinkSyncPayload(p,targetAccount){
   closeBlablalinkSyncGuide();
   const unresolved=Array.isArray(p.unresolved)?p.unresolved.length:0;
   const skillMissingCount=targetData.filter(row=>row&&row.__nikkeSyncedOwned===true&&['스킬1','스킬2','버스트스킬'].some(key=>row[key]===null||row[key]===undefined||row[key]==='')).length;
-  const syncEngineLabel=p.worker_version?'Cloudflare Worker '+String(p.worker_version):(p.scriptVersion?'Tampermonkey v'+String(p.scriptVersion):'동기화 엔진 버전 미확인');
+  const syncEngineLabel=p.sync_type==='scriptless_external'?'외부 API (설치 불필요)':(p.worker_version?'Cloudflare Worker '+String(p.worker_version):(p.scriptVersion?'Tampermonkey v'+String(p.scriptVersion):'동기화 엔진 버전 미확인'));
   console.info('[NIKKE GM] Sync apply summary',{targetAccount:syncAccount,detailCount:p.detailCount||0,matched,gearDataCount,skillDataCount,skillMissingCount,changed,unresolved});
   toast('BlablaLink 동기화 완료 · '+syncEngineLabel+' · '+matched+'명 반영 · 장비 데이터 '+gearDataCount+'명 · 스킬 데이터 '+skillDataCount+'명 · 스킬 미수신 '+skillMissingCount+'명 · '+changed+'개 변경'+(unresolved?' · 미매칭 '+unresolved+'명':''));
 }
