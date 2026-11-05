@@ -56,6 +56,20 @@
   function regionLabel(areaId){
     return ({'81':'일본 (JP)','82':'북미 (NA)','83':'한국 (KR)','84':'글로벌 (Global)','85':'동남아 (SEA)'})[String(areaId)] || ('지역 ' + String(areaId));
   }
+  function preferredRegionKey(account,url){
+    var u=new URL(url);
+    return 'nikke_external_region_v1_'+encodeURIComponent(account)+'_'+encodeURIComponent(u.searchParams.get('openid')||'');
+  }
+  function preferredRegion(account,url){
+    try{
+      var value=Number(localStorage.getItem(preferredRegionKey(account,url)));
+      return [81,82,83,84,85].includes(value)?value:'';
+    }catch(_){return '';}
+  }
+  function storePreferredRegion(account,url,area){
+    if(![81,82,83,84,85].includes(Number(area)))return;
+    try{localStorage.setItem(preferredRegionKey(account,url),String(area))}catch(_){}
+  }
 
   function injectStyle(){
     if(document.getElementById('bl-direct-sync-style')) return;
@@ -265,125 +279,78 @@
     });
 
     overlay.querySelector('.bl-direct-primary').addEventListener('click', async function(){
-      if(working) return;
-
-      var input = overlay.querySelector('#blDirectUrl');
-      var status = overlay.querySelector('#blDirectStatus');
-      var primary = overlay.querySelector('.bl-direct-primary');
-      var card = overlay.querySelector('#blDirectProfile');
-      var regionPicker = overlay.querySelector('#blDirectRegionPicker');
-      var regionSelect = overlay.querySelector('#blDirectRegionSelect');
-      var requestedAreaId = null;
-      var accounts = getAccounts();
-
-      targetAccount = targetAccount || accounts[0] || '계정1';
-      var selectedTargetAccount = targetAccount;
-
-      if(regionPicker && !regionPicker.hidden){
-        var selectedAreaValue = regionSelect ? String(regionSelect.value || '').trim() : '';
-        if(!selectedAreaValue){
-          status.className = 'bl-direct-status error';
-          status.textContent = '여러 지역에서 로스터가 발견되었습니다. 동기화할 지역을 먼저 선택해 주세요.';
-          if(regionSelect) regionSelect.focus();
+      if(working)return;
+      var input=overlay.querySelector('#blDirectUrl');
+      var status=overlay.querySelector('#blDirectStatus');
+      var primary=overlay.querySelector('.bl-direct-primary');
+      var card=overlay.querySelector('#blDirectProfile');
+      var regionPicker=overlay.querySelector('#blDirectRegionPicker');
+      var regionSelect=overlay.querySelector('#blDirectRegionSelect');
+      var requestedAreaId=null;
+      var accounts=getAccounts();
+      targetAccount=targetAccount||accounts[0]||'계정1';
+      var selectedTargetAccount=targetAccount;
+      if(regionPicker&&!regionPicker.hidden){
+        var areaValue=regionSelect?String(regionSelect.value||'').trim():'';
+        if(!areaValue){
+          status.className='bl-direct-status error';
+          status.textContent='여러 지역에서 로스터가 발견되었습니다. 동기화할 지역을 먼저 선택해 주세요.';
+          if(regionSelect)regionSelect.focus();
           return;
         }
-        requestedAreaId = Number(selectedAreaValue);
+        requestedAreaId=Number(areaValue);
       }
-
       var url;
+      try{url=validateProfileUrl(input.value.trim())}
+      catch(error){status.className='bl-direct-status error';status.textContent=text(error&&error.message||error);return;}
+      working=true;
+      primary.disabled=true;
+      card.hidden=true;
+      status.className='bl-direct-status';
+      status.textContent='외부 NIKKE API로 장비·스킬 데이터를 확인하는 중…';
       try{
-        url = validateProfileUrl(input.value.trim());
-      }catch(err){
-        status.className = 'bl-direct-status error';
-        status.textContent = text(err && err.message || err);
-        return;
-      }
-
-      working = true;
-      primary.disabled = true;
-      card.hidden = true;
-      status.className = 'bl-direct-status';
-      status.textContent = '프로필과 NIKKE 장비 정보를 조회하는 중…';
-
-      try{
-        var response = await fetch(API + '/sync', {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify(requestedAreaId === null ? {profile_url:url} : {profile_url:url,area_id:requestedAreaId}),
-          cache: 'no-store',
-          credentials: 'omit'
+        var fetchExternal=window.__NIKKE_GM_SCRIPTLESS_SYNC__;
+        if(typeof fetchExternal!=='function')
+          throw new Error('설치 없는 동기화 모듈을 찾지 못했습니다. 새로고침 후 다시 시도해 주세요.');
+        var payload=await fetchExternal(url,{
+          areaId:requestedAreaId===null?'':requestedAreaId,
+          preferredAreaId:preferredRegion(selectedTargetAccount,url),
+          onProgress:function(message){status.textContent=message;}
         });
-
-        var payload = await response.json().catch(function(){ return {}; });
-        if(!response.ok || payload.ok !== true){
-          if(payload.sync_type === 'multiple_rosters' && Array.isArray(payload.candidates) && payload.candidates.length > 1){
-            if(regionSelect){
-              regionSelect.innerHTML = '<option value="">지역 선택…</option>';
-              payload.candidates.forEach(function(candidate){
-                var areaId = Number(candidate && candidate.area_id);
-                if(![81,82,83,84,85].includes(areaId)) return;
-                var option = document.createElement('option');
-                option.value = String(areaId);
-                option.textContent = regionLabel(areaId) + ' · ' + String(Number(candidate.character_count)||0) + '명';
-                regionSelect.appendChild(option);
-              });
-            }
-            if(regionPicker) regionPicker.hidden = false;
-            primary.textContent = '선택한 지역으로 동기화';
-            status.className = 'bl-direct-status error';
-            status.textContent = '여러 지역에서 보유 니케가 확인되었습니다. 올바른 지역을 선택한 다음 아래 버튼을 다시 눌러 주세요.';
-            return;
+        var apply=window.__NIKKE_GM_APPLY_SYNC__;
+        if(typeof apply!=='function')throw new Error('사이트 계정 동기화 모듈을 찾지 못했습니다.');
+        // All external pages and known-character options/skills are validated before writing.
+        apply(payload,selectedTargetAccount);
+        try{localStorage.setItem('nikke_bl_profile_url_'+encodeURIComponent(selectedTargetAccount),url)}catch(_){}
+        if(requestedAreaId!==null)storePreferredRegion(selectedTargetAccount,url,payload.area_id);
+        if(regionPicker)regionPicker.hidden=true;
+        if(regionSelect)regionSelect.innerHTML='<option value="">지역 선택…</option>';
+        primary.textContent='동기화 시작';
+        status.className='bl-direct-status success';
+        status.textContent='장비·스킬 동기화 완료 · '+regionLabel(payload.area_id)+' · '+payload.character_count+'명 반영'
+          +(payload.skipped_character_count?' · 사이트 미등록 '+payload.skipped_character_count+'명 제외 ('+payload.skipped_character_names.slice(0,3).join(', ')+')':'')
+          +' · 기존 싱크로·전초기지 레벨 유지';
+      }catch(error){
+        if(error&&error.code==='multiple_areas'&&Array.isArray(error.candidates)&&error.candidates.length>1){
+          if(regionSelect){
+            regionSelect.innerHTML='<option value="">지역 선택…</option>';
+            error.candidates.forEach(function(candidate){
+              var area=Number(candidate&&candidate.area_id);
+              if(![81,82,83,84,85].includes(area))return;
+              var opt=document.createElement('option');
+              opt.value=String(area);
+              opt.textContent=regionLabel(area)+' · '+String(Number(candidate.character_count)||0)+'명';
+              regionSelect.appendChild(opt);
+            });
           }
-          throw new Error(payload.message || 'BlaBlaLink 동기화에 실패했습니다.');
+          if(regionPicker)regionPicker.hidden=false;
+          primary.textContent='선택한 지역으로 동기화';
         }
-
-        var apply = window.__NIKKE_GM_APPLY_SYNC__;
-        if(typeof apply !== 'function'){
-          throw new Error('사이트 동기화 기능을 불러오지 못했습니다. 페이지를 새로고침해 주세요.');
-        }
-
-        try{
-          localStorage.setItem('nikke_bl_profile_url_' + encodeURIComponent(selectedTargetAccount), url);
-        }catch(_){}
-
-        var profile = payload.profile || {};
-        if(profile.username || profile.avatar){
-          card.hidden = false;
-          var img = overlay.querySelector('#blDirectAvatar');
-          if(profile.avatar){
-            img.src = profile.avatar;
-            img.hidden = false;
-          }else{
-            img.hidden = true;
-            img.removeAttribute('src');
-          }
-          overlay.querySelector('#blDirectName').textContent = profile.username || '닉네임 없음';
-          overlay.querySelector('#blDirectSub').textContent =
-            String(payload.character_count || 0) + '명 · 상세 ' + String(payload.detail_count || 0) + '건';
-        }
-
-        apply(payload, selectedTargetAccount);
-        var levelMessage = '';
-        if(typeof window.__NIKKE_GM_SYNC_LEVELS__ === 'function'){
-          status.textContent = '장비·스킬 동기화 완료 · 싱크로·전초기지 레벨 조회 중…';
-          try{
-            levelMessage = await window.__NIKKE_GM_SYNC_LEVELS__(payload, selectedTargetAccount, url);
-          }catch(levelError){
-            levelMessage = '레벨 조회 실패: ' + text(levelError?.message || levelError);
-          }
-        }
-
-        if(regionPicker) regionPicker.hidden = true;
-        if(regionSelect) regionSelect.innerHTML = '<option value="">지역 선택…</option>';
-        primary.textContent = '동기화 시작';
-        status.className = 'bl-direct-status success';
-        status.textContent = '동기화가 완료되었습니다. 지역: ' + regionLabel(payload.area_id) + '. ' + levelMessage;
-      }catch(err){
-        status.className = 'bl-direct-status error';
-        status.textContent = text(err && err.message || err || '동기화에 실패했습니다.');
+        status.className='bl-direct-status error';
+        status.textContent=text(error&&error.message||error||'외부 API 동기화에 실패했습니다. 기존 데이터는 유지됩니다.');
       }finally{
-        working = false;
-        primary.disabled = false;
+        working=false;
+        primary.disabled=false;
       }
     });
 
