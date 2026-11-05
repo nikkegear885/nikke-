@@ -129,7 +129,10 @@
           list.forEach(function (item) {
             const name = String(item && item.name || '').trim();
             const image = String(item && item.image || '').trim();
-            if (name && /^https?:\/\//i.test(image)) imageMap[normalizeName(name)] = image;
+            if (name && /^https?:\/\//i.test(image)) {
+              imageMap[normalizeName(name)] = image;
+              if (name === '사쿠라 스즈하라') imageMap[normalizeName('스즈하라 사쿠라')] = image;
+            }
           });
         }
       } catch (_) {}
