@@ -4384,7 +4384,7 @@ html.dark-theme .name-cell-image{
 (function(){
   // Keep the visible build label in sync with the version embedded in this page.
   // Do not redirect/reload the page based on a separately cached VERSION file.
-  var EMBEDDED_VERSION='1.545';
+  var EMBEDDED_VERSION='1.546';
   function applyVersion(){
     var el=document.getElementById('siteVersionCorner');
     if(el) el.textContent='VERSION '+EMBEDDED_VERSION;
@@ -4882,6 +4882,7 @@ const BL_SYNC_SITE_ORIGIN=location.origin;
 let blSyncPopup=null;
 let blSyncToken='';
 let blSyncTimer=null;
+let blSyncReady=false;
 let blSyncAccount='';
 let blSyncAccountStartedAt='';
 function normalizeSyncCorp(v){
@@ -4919,10 +4920,16 @@ function startBlablalinkSync(targetAccount){
   // 버튼으로 지정한 계정을 동기화 대상으로 고정합니다. 현재 화면에서 선택한 계정과 무관합니다.
   blSyncAccount=ACCOUNTS.includes(targetAccount)?targetAccount:activeAccount;
   blSyncAccountStartedAt=new Date().toISOString();
+  blSyncReady=false;
   blSyncToken=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random().toString(36).slice(2));
   blSyncPopup=window.open('https://www.blablalink.com/','nikkeBlablalinkSync','width=520,height=760,resizable=yes,scrollbars=yes');
   if(!blSyncPopup){setBlSyncStatus('팝업이 차단되었습니다. 브라우저에서 팝업을 허용한 뒤 다시 시도하세요.');return}
   setBlSyncStatus('BlablaLink 창이 열렸습니다. 로그인 상태를 확인한 뒤 자동 동기화를 기다리세요.');
+  setTimeout(()=>{
+    if(!blSyncReady && blSyncPopup && !blSyncPopup.closed){
+      setBlSyncStatus('동기화 스크립트 연결이 확인되지 않았습니다. Tampermonkey 스크립트 설치·사용 설정을 확인한 뒤 다시 시도해 주세요.');
+    }
+  },12000);
   if(blSyncTimer)clearInterval(blSyncTimer);
   blSyncTimer=setInterval(()=>{
     try{
@@ -5187,6 +5194,7 @@ window.addEventListener('message',e=>{
   const fromBlabla=host==='blablalink.com'||host.endsWith('.blablalink.com');
   if(!fromBlabla||e.source!==blSyncPopup)return;
   if(d.type==='NIKKE_GM_BL_READY'){
+    blSyncReady=true;
     try{e.source.postMessage({type:'NIKKE_GM_BL_HELLO',token:blSyncToken,targetOrigin:BL_SYNC_SITE_ORIGIN},e.origin)}catch(_){}
     setBlSyncStatus('BlablaLink 세션 확인 중…');
     return;
@@ -7242,7 +7250,7 @@ html.dark-theme #outpostPanel .outpost-final-stage-btn{
   object-position:center;
   border-radius:50%;
 }
-</style><script src="account-level-sync.js?v=1.539"></script><script src="profile-import-button.js?v=1.027"></script><script src="pedia.js?v=1057"></script><script src="wishlist.js?v=3.18"></script><script src="skill-status.js?v=1.16"></script><style id="character-image-column-v004">
+</style><script src="account-level-sync.js?v=1.539"></script><script src="profile-import-button.js?v=1.028"></script><script src="pedia.js?v=1057"></script><script src="wishlist.js?v=3.18"></script><script src="skill-status.js?v=1.16"></script><style id="character-image-column-v004">
 /* v1.013: 니케 사진을 이름과 분리된 고정 폭 열로 표시 */
 #characterPanel th[data-column-key="사진"],
 #characterPanel td.character-image-column-cell{
