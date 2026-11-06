@@ -4384,7 +4384,7 @@ html.dark-theme .name-cell-image{
 (function(){
   // Keep the visible build label in sync with the version embedded in this page.
   // Do not redirect/reload the page based on a separately cached VERSION file.
-  var EMBEDDED_VERSION='1.555';
+  var EMBEDDED_VERSION='1.556';
   function applyVersion(){
     var el=document.getElementById('siteVersionCorner');
     if(el) el.textContent='VERSION '+EMBEDDED_VERSION;
@@ -5709,13 +5709,9 @@ function getFiltered(){
   let arr=data.map((r,i)=>({r,i})).filter(({r,i})=>{
     if(q){
       const hay=[r['이름'],r['무기'],r['스킬1'],r['스킬2'],r['버스트스킬']].map(x=>String(x??'').toLowerCase()).join(' ');
-      // Match punctuation and spacing variants without changing saved names.
+      // Search should locate a character even if spaces or punctuation differ.
       const normalizedName=String(r['이름']??'').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
       if(!hay.includes(q) && !(normalizedQuery && normalizedName.includes(normalizedQuery))) return false;
-      // Text search must find registered characters regardless of currently
-      // selected equipment, ownership, unused, or completion filters.
-      // This only changes the visible results, never stored account flags.
-      return true;
     }
     if(filters.이름.size&&!filters.이름.has(String(r['이름']??''))) return false;
     if(filters.기업.size&&!filters.기업.has(normalizedFilterValue(r['기업']))) return false;
@@ -5727,7 +5723,7 @@ function getFiltered(){
     const g=gearState(r);
     if(filters.선택.has('selected') && !selectedCharacters.has(i)) return false;
     if(completionFilters.hideUnused && isUnusedCharacter(i,r)) return false;
-    if(completionFilters.hideUnowned && !q && isUnownedCharacter(i,r) && !showMarianQueenUnownedRow(i,r)) return false;
+    if(completionFilters.hideUnowned && !q && isUnownedCharacter(i,r)) return false;
     if(completionFilters.hideFullOverload && g.overload===4) return false;
     if(completionFilters.hideFullCompany && g.parts.every(x=>x.category==='overload'||(x.category==='company'&&!x.mismatch))) return false;
     const activeGearParts=gearParts.filter(p=>(filters.장비부위별[p]||new Set()).size>0);
@@ -5781,12 +5777,12 @@ function renderTable(){
   renderKpis();
   renderDropRatePanel();
   let arr=getFiltered();
+  if(completionFilters.hideUnused) arr=arr.filter(({r,i})=>!isUnusedCharacter(i,r));
   const explicitSearch=!!document.getElementById('search')?.value.trim();
-  if(completionFilters.hideUnused&&!explicitSearch) arr=arr.filter(({r,i})=>!isUnusedCharacter(i,r));
-  // Explicit name search reveals unowned rows only for inspection, without changing ownership flags.
-  if(completionFilters.hideUnowned&&!explicitSearch) arr=arr.filter(({r,i})=>!isUnownedCharacter(i,r)||showMarianQueenUnownedRow(i,r));
+  // An explicit character lookup can reveal hidden unowned characters for inspection.
+  if(completionFilters.hideUnowned&&!explicitSearch) arr=arr.filter(({r,i})=>!isUnownedCharacter(i,r));
   document.getElementById('countText').textContent=`${arr.length} / ${data.length}명`+
-    (explicitSearch?' · 검색 시 모든 필터 해제 (저장 상태 유지)':'');
+    (explicitSearch&&completionFilters.hideUnowned?' · 검색 시 미보유 포함':'');
   document.getElementById('tbody').innerHTML=arr.map(({r,i})=>{
     const g=gearState(r);
     const opts=['우코(%)','공증(%)','장탄(%)','크확(%)','크댐(%)','명중(%)','차댐(%)','차속(%)','방어(%)'].filter(k=>num(r[k])>0).length;
@@ -6102,12 +6098,6 @@ let selectedCharacters=loadAccountSelection(activeAccount);
 let unusedCharacters=loadAccountUnused(activeAccount);
 function isUnusedCharacter(i,r){const n=characterName(i,r);return n?unusedCharacters.has(n):false;}
 function isUnownedCharacter(i,r){const n=characterName(i,r);return n?unownedCharacters.has(n):false;}
-// The test site's photo account explicitly marks Marian: Queen as owned.
-// Keep production's real ownership data, but show the character's existing
-// entry even when 'hide unowned' is enabled, so missing sync can be diagnosed.
-function showMarianQueenUnownedRow(i,r){
-  return String(r?.['이름']??'').normalize('NFKC').replace(/[\s:：]/g,'')==='마리안퀸';
-}
 function saveUnusedCharacters(){try{localStorage.setItem(accountStorageKey(ACCOUNT_UNUSED_PREFIX,activeAccount),JSON.stringify([...unusedCharacters]));}catch(e){}}
 function updateUnownedViewButton(){const b=document.getElementById('unownedViewBtn');if(!b)return;const hidden=!!completionFilters.hideUnowned;b.classList.toggle('active',!hidden);b.textContent='미보유 니케 보이기';b.setAttribute('aria-pressed',!hidden?'true':'false');}
 function saveCompletionFilterState(){try{localStorage.setItem(COMPLETION_FILTER_STORAGE,JSON.stringify(completionFilters));localStorage.setItem('nikke_hide_unused_filter',completionFilters.hideUnused?'1':'0');localStorage.setItem('nikke_hide_unowned_filter',completionFilters.hideUnowned?'1':'0')}catch(_){} }
@@ -7368,7 +7358,7 @@ html.dark-theme #outpostPanel .outpost-final-stage-btn{
   object-position:center;
   border-radius:50%;
 }
-</style><script src="account-level-sync.js?v=1.539"></script><script src="scriptless-sync.js?v=1.551"></script><script src="profile-import-button.js?v=1.030"></script><script src="pedia.js?v=1058"></script><script src="wishlist.js?v=3.19"></script><script src="skill-status.js?v=1.16"></script><style id="character-image-column-v004">
+</style><script src="account-level-sync.js?v=1.539"></script><script src="scriptless-sync.js?v=1.551"></script><script src="profile-import-button.js?v=1.030"></script><script src="pedia.js?v=1058"></script><script src="wishlist.js?v=3.20"></script><script src="skill-status.js?v=1.16"></script><style id="character-image-column-v004">
 /* v1.013: 니케 사진을 이름과 분리된 고정 폭 열로 표시 */
 #characterPanel th[data-column-key="사진"],
 #characterPanel td.character-image-column-cell{
