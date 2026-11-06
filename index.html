@@ -4384,7 +4384,7 @@ html.dark-theme .name-cell-image{
 (function(){
   // Keep the visible build label in sync with the version embedded in this page.
   // Do not redirect/reload the page based on a separately cached VERSION file.
-  var EMBEDDED_VERSION='1.553';
+  var EMBEDDED_VERSION='1.554';
   function applyVersion(){
     var el=document.getElementById('siteVersionCorner');
     if(el) el.textContent='VERSION '+EMBEDDED_VERSION;
@@ -4883,7 +4883,11 @@ async function loadNikkePediaImages(){
     });
     NIKKE_PEDIA_IMAGES=map;
     renderTable();
-  }catch(_){}
+  }catch(error){
+    // Retry on the next sync, rather than permanently disabling image loading.
+    NIKKE_PEDIA_IMAGES_LOADED=false;
+    console.warn('[NIKKE GM] 니케 이미지 도감 로딩 실패, 다음 동기화에서 재시도합니다.',error);
+  }
 }
 function nikkeNameWithImage(r){
   const name=String(r?.['이름']??'').trim();
@@ -5243,21 +5247,38 @@ function applyBlablalinkSyncPayload(p,targetAccount){
       detailCount:p.detailCount||0,matched,changed,skillDataCount,gearDataCount,workerVersion:p.worker_version||'',unresolved:(p.unresolved||[]).length
     }));
   }catch(_){}
-  // 동기화한 계정을 즉시 화면에도 표시합니다.
+  // Reload the saved account snapshot just as a page refresh would, then
+  // immediately reconcile all visible panels without changing saved user filters.
   if(syncAccount!==activeAccount){
     switchAccount(syncAccount);
   }else{
+    data=readAccountData(syncAccount);
+    selectedCharacters=loadAccountSelection(syncAccount);
+    unusedCharacters=loadAccountUnused(syncAccount);
+    unownedCharacters=loadAccountUnowned(syncAccount);
+    renderHeader();
     renderTable();
-    renderKpis();
-    renderDropRatePanel();
-    // If syncing while the wishlist view is open, refresh its owned/unowned tiles immediately.
-    if(document.body.classList.contains('wishlist-view') && typeof window.renderWishlist === 'function'){
-      window.renderWishlist();
-    }
+    updateUnusedViewButton();
+    updateUnownedViewButton();
+    updateCompletionFilterUI();
+    updateDetailColumnButton();
+    updateAccountButtons();
+  }
+  if(document.body.classList.contains('wishlist-view') && typeof window.renderWishlist === 'function'){
+    window.renderWishlist();
   }
   if(typeof window.__NIKKE_GM_REFRESH_SKILL_STATUS__==='function'){
     window.__NIKKE_GM_REFRESH_SKILL_STATUS__(syncAccount);
   }
+  // If initial image loading failed, retry after synchronization.
+  void loadNikkePediaImages();
+  // Paint once more after the modal and import-button wrapper finish updating.
+  requestAnimationFrame(()=>{
+    if(activeAccount!==syncAccount)return;
+    renderTable();
+    if(document.body.classList.contains('wishlist-view') && typeof window.renderWishlist==='function')window.renderWishlist();
+    if(typeof window.__NIKKE_GM_REFRESH_SKILL_STATUS__==='function')window.__NIKKE_GM_REFRESH_SKILL_STATUS__(syncAccount);
+  });
   closeBlablalinkSyncGuide();
   const unresolved=Array.isArray(p.unresolved)?p.unresolved.length:0;
   const skillMissingCount=targetData.filter(row=>row&&row.__nikkeSyncedOwned===true&&['스킬1','스킬2','버스트스킬'].some(key=>row[key]===null||row[key]===undefined||row[key]==='')).length;
