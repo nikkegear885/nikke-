@@ -287,10 +287,10 @@
       return {rank:3,tierOrder:2,index:997};
     }
     if(isMarkedUnowned(name) && key === norm('루주')){
-      // 아니스 : 스타와 볼륨 모두 미보유 시 범용캐 맨 뒤, 둘 중 하나라도 보유 시 에이드 뒤의 솔레 순위.
+      // 아니스 : 스타와 루주가 모두 미보유일 때만 범용캐 맨 뒤, 그 외에는 기본 솔레 순서.
       return shouldKeepUnownedRougeInGeneralTier()
         ? {rank:3,tierOrder:2,index:999}
-        : {rank:6,tierOrder:5,index:2.5};
+        : WISHLIST_PERFORMANCE_POSITION.get(key);
     }
     if(isMarkedUnowned(name) && key === norm('볼륨')){
       return {rank:6,tierOrder:5,index:-1};
@@ -377,11 +377,10 @@
   const WISHLIST_UNOWNED_GENERAL_OVERRIDE_NAMES = new Set(['베스티 : 택티컬 업'].map(norm));
   // 프리카는 별도 특수조건 없이 기본 범용캐 우선순위를 적용한다.
   const WISHLIST_UNOWNED_REQUIRED_OVERRIDE_NAMES = new Set();
-  // 루주 미보유 시 아니스 : 스타와 볼륨이 모두 미보유라면 범용캐 맨 뒤에 배치한다.
-  // 둘 중 하나라도 보유했다면 에이드 : 에이전트 바니 바로 뒤의 솔레 순위로 내린다.
-  // 루주 명함을 보유하면 기존 솔레 순서를 그대로 적용한다.
+  // 루주와 아니스 : 스타가 모두 미보유이면 범용캐 맨 뒤에 배치한다.
+  // 둘 중 하나라도 보유 중이면 루주는 기존 솔레 기본 순서를 따른다. 볼륨 보유 여부는 관계없다.
   function shouldKeepUnownedRougeInGeneralTier(){
-    return isMarkedUnowned('아니스 : 스타') && isMarkedUnowned('볼륨');
+    return isMarkedUnowned('아니스 : 스타') && isMarkedUnowned('루주');
   }
   const WISHLIST_UNOWNED_GENERAL_LAST_NAMES = new Set(['루주'].map(norm));
   // Volume is promoted to the first Solo Raid slot only while unowned, then returns to Namecard.
