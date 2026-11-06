@@ -4384,7 +4384,7 @@ html.dark-theme .name-cell-image{
 (function(){
   // Keep the visible build label in sync with the version embedded in this page.
   // Do not redirect/reload the page based on a separately cached VERSION file.
-  var EMBEDDED_VERSION='1.552';
+  var EMBEDDED_VERSION='1.553';
   function applyVersion(){
     var el=document.getElementById('siteVersionCorner');
     if(el) el.textContent='VERSION '+EMBEDDED_VERSION;
@@ -5691,6 +5691,10 @@ function getFiltered(){
       // Match punctuation and spacing variants without changing saved names.
       const normalizedName=String(r['이름']??'').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
       if(!hay.includes(q) && !(normalizedQuery && normalizedName.includes(normalizedQuery))) return false;
+      // Text search must find registered characters regardless of currently
+      // selected equipment, ownership, unused, or completion filters.
+      // This only changes the visible results, never stored account flags.
+      return true;
     }
     if(filters.이름.size&&!filters.이름.has(String(r['이름']??''))) return false;
     if(filters.기업.size&&!filters.기업.has(normalizedFilterValue(r['기업']))) return false;
@@ -5756,12 +5760,12 @@ function renderTable(){
   renderKpis();
   renderDropRatePanel();
   let arr=getFiltered();
-  if(completionFilters.hideUnused) arr=arr.filter(({r,i})=>!isUnusedCharacter(i,r));
   const explicitSearch=!!document.getElementById('search')?.value.trim();
+  if(completionFilters.hideUnused&&!explicitSearch) arr=arr.filter(({r,i})=>!isUnusedCharacter(i,r));
   // Explicit name search reveals unowned rows only for inspection, without changing ownership flags.
   if(completionFilters.hideUnowned&&!explicitSearch) arr=arr.filter(({r,i})=>!isUnownedCharacter(i,r)||showMarianQueenUnownedRow(i,r));
   document.getElementById('countText').textContent=`${arr.length} / ${data.length}명`+
-    (explicitSearch&&completionFilters.hideUnowned?' · 검색 시 미보유 포함':'');
+    (explicitSearch?' · 검색 시 모든 필터 해제 (저장 상태 유지)':'');
   document.getElementById('tbody').innerHTML=arr.map(({r,i})=>{
     const g=gearState(r);
     const opts=['우코(%)','공증(%)','장탄(%)','크확(%)','크댐(%)','명중(%)','차댐(%)','차속(%)','방어(%)'].filter(k=>num(r[k])>0).length;
