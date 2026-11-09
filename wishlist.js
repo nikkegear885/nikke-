@@ -261,12 +261,24 @@
   // No Red Hood Rapi: unowned D is general, owned D is solo.
   // With Rapi: unowned D is solo, owned D is namecard.
   const KILLER_WIFE_NAME = 'D : 킬러 와이프';
+  // Only after passing the 160 wall (O), Delta: Ninja Thief leads the namecard tier.
+  // In X mode its original Solo Raid classification and priority remain untouched.
+  const DELTA_NINJA_THIEF_NAME = '델타 : 닌자 시프';
   function getKillerWifePriority(unowned){
     if(isMarkedUnowned('라피 : 레드 후드')) return unowned ? 3 : 6;
     return unowned ? 6 : 8;
   }
   function getWishlistPerformancePosition(name){
     const key = norm(name);
+    if(isOCollectionFrontName(name)) return {rank:10,tierOrder:7,index:WISHLIST_O_COLLECTION_FRONT_INDEX.get(key)};
+    if(wallStatus === 'O' && WISHLIST_COLLECTION_NAMES.has(key)){
+      const pos = WISHLIST_PERFORMANCE_POSITION.get(key);
+      return pos ? {rank:10,tierOrder:7,index:WISHLIST_O_COLLECTION_FRONT_NAMES.length+pos.index} : pos;
+    }
+    if(isLaplaceNamecardInO(name)) return {rank:8,tierOrder:6,index:1.5};
+    if(wallStatus === 'O' && key === norm(DELTA_NINJA_THIEF_NAME)){
+      return {rank:8,tierOrder:6,index:-1}; // first in the ordinary namecard tier
+    }
     if(key === norm(KILLER_WIFE_NAME)){
       const rank = getKillerWifePriority(isMarkedUnowned(name));
       if(rank === 3) return {rank:3,tierOrder:2,index:998}; // end of general tier
@@ -365,12 +377,62 @@
       .flatMap(tier => tier.names.map(norm))
   );
   const WISHLIST_TRACKED_NAMES = new Set(WISHLIST_PERFORMANCE_TIERS.flatMap(tier => tier.names.map(norm)));
+  // O mode only: former namecard-only characters move to the front of collection.
+  // Keep the shared tier table unchanged for X mode.
+  const WISHLIST_O_COLLECTION_FRONT_NAMES = ['에이드','크러스트','앨리스 : 원더랜드 바니','레오나','네로'];
+  const WISHLIST_O_COLLECTION_FRONT_INDEX = new Map(WISHLIST_O_COLLECTION_FRONT_NAMES.map((name,index)=>[norm(name),index]));
+  function isOCollectionFrontName(name){
+    return wallStatus === 'O' && WISHLIST_O_COLLECTION_FRONT_INDEX.has(norm(name));
+  }
+  // Special orange explanation is separate from the existing orange treasure category.
+  const WISHLIST_TREASURE_NAMECARD_HINT = '애장품+명함추천\n우선도가 높지 않지만 애장품을 목표한다면 2돌추천';
+  const WISHLIST_TREASURE_NAMECARD_NAMES = new Set(['츠바이','율리아','라플라스'].map(norm));
+  function getTreasureNamecardHint(name){
+    return wallStatus === 'O' && WISHLIST_TREASURE_NAMECARD_NAMES.has(norm(name))
+      ? WISHLIST_TREASURE_NAMECARD_HINT : '';
+  }
+  // Show special purple recommendation hints in both 160-wall O and X modes
+  // when a key unit is missing. These hints do not change auto-build ordering.
+  function getWishlistSpecialPriorityHint(name){
+    if(!name) return '';
+    const key = norm(name);
+    if(key === norm('루주') && shouldKeepUnownedRougeInGeneralTier()){
+      return '아니스 : 스타를 미보유 중이므로 우선적으로 추천되었습니다';
+    }
+    if(key === norm(KILLER_WIFE_NAME) &&
+       isMarkedUnowned(KILLER_WIFE_NAME) && isMarkedUnowned('라피 : 레드 후드')){
+      return '라피 : 레드 후드를 미보유 중이므로 우선적으로 추천되었습니다';
+    }
+    return '';
+  }
+  // Colored markers are intentionally restricted to standard-company equipment slots in O mode.
+  function getWishlistRecommendationHint(name, company){
+    if(wallStatus !== 'O' || !name || company === PILGRIM_COMPANY) return '';
+    const key = norm(name);
+    if(WISHLIST_TREASURE_UPSIDE_NAMES.has(key) ||
+       WISHLIST_TREASURE_REQUIRED_UNDER_TWO_NAMES.has(key) ||
+       WISHLIST_TREASURE_SOLO_UNDER_TWO_NAMES.has(key) ||
+       WISHLIST_TWO_BREAKTHROUGH_PVP_NAMES.has(key)) return '애장품 보유캐릭터';
+    if(!isOCollectionFrontName(name) && (key === norm(DELTA_NINJA_THIEF_NAME) || WISHLIST_NAMECARD_NAMES.has(key) ||
+       (key === norm(KILLER_WIFE_NAME) && getKillerWifePriority(isMarkedUnowned(name)) === 8))){
+      return '명함 추천 캐릭터\n우선도가 높지 않지만\n명함정도는 챙겨놓는걸 추천합니다';
+    }
+    if(isOCollectionFrontName(name) || WISHLIST_COLLECTION_NAMES.has(key) || !WISHLIST_TRACKED_NAMES.has(key))
+      return '도감용\n현재는 활용도가 없는 캐릭터';
+    return '';
+  }
   // Special breakthrough-based priority overrides requested for the wishlist.
   // 프리바티: 2돌 미만이면 애장품 필수, 2돌 이상이면 기본 애장품 솔레캐 우선순위 유지.
   const WISHLIST_TREASURE_REQUIRED_UNDER_TWO_NAMES = new Set(['프리바티'].map(norm));
   // 센티는 2돌 미만일 때만 PVP 대신 애장품 솔레캐 우선순위를 적용합니다.
   const WISHLIST_TREASURE_SOLO_UNDER_TWO_NAMES = new Set(['센티'].map(norm));
   const WISHLIST_TWO_BREAKTHROUGH_PVP_NAMES = new Set(['라플라스'].map(norm));
+  const NORMAL_LAPLACE_NAME = '라플라스';
+  // Normal Laplace leaves the PVP tier whenever the 160 wall is cleared (O).
+  // X mode retains the existing PvP preference and under-2★ rule.
+  function isLaplaceNamecardInO(name){
+    return wallStatus === 'O' && norm(name) === norm(NORMAL_LAPLACE_NAME);
+  }
   const WISHLIST_TWO_BREAKTHROUGH_NAMECARD_NAMES = new Set(['츠바이','율리아'].map(norm));
   const WISHLIST_AUTO_EXCLUDE_AT_TWO_NAMES = new Set(['미란다'].map(norm));
   // 베스티 : 택티컬 업은 미보유 상태에서만 범용캐로 취급하고, 명함 보유 시 기존 PVP 우선도를 따른다.
@@ -390,6 +452,9 @@
   }
   function getWishlistPerformancePriority(name){
     const key = norm(name);
+    if(isOCollectionFrontName(name)) return 10;
+    if(isLaplaceNamecardInO(name)) return getBreakthrough(name) < 2 ? 8 : DEFAULT_PERFORMANCE_PRIORITY;
+    if(wallStatus === 'O' && key === norm(DELTA_NINJA_THIEF_NAME)) return 8;
     if(key === norm(KILLER_WIFE_NAME)) return getKillerWifePriority(isMarkedUnowned(name));
     if(WISHLIST_UNOWNED_REQUIRED_OVERRIDE_NAMES.has(key) && isMarkedUnowned(name)) return 1;
     if(WISHLIST_UNOWNED_GENERAL_OVERRIDE_NAMES.has(key) && isMarkedUnowned(name)) return 3;
@@ -430,6 +495,9 @@
 
   function getCopyPrioritySortGroup(name, performancePriority, breakthrough, unowned){
     const key = norm(name);
+    if(isOCollectionFrontName(name)) return copyPriority === 2 ? (unowned ? 9.9 : 20) : Number.POSITIVE_INFINITY;
+    if(isLaplaceNamecardInO(name)) return breakthrough < 2 ? 7.95 : 18;
+    if(wallStatus === 'O' && key === norm(DELTA_NINJA_THIEF_NAME)) return unowned ? 7.7 : 18;
     if(key === norm(KILLER_WIFE_NAME)){
       const rank = getKillerWifePriority(unowned);
       return rank === 3 ? (unowned ? 3 : 13) : (rank === 6 ? 6 : 18);
@@ -453,7 +521,9 @@
     }
     if(SOLO_RAID_WISHLIST_NAMES.has(key)) return unowned ? 6 : 16;
     if(WISHLIST_TWO_BREAKTHROUGH_NAMECARD_NAMES.has(key)){
-      if(breakthrough < 2) return key === norm('츠바이') ? 7 : 7.5;
+      if(breakthrough < 2) return wallStatus === 'O'
+          ? (key === norm('츠바이') ? 7.8 : 7.9)
+          : (key === norm('츠바이') ? 7 : 7.5);
       return 18;
     }
     if(WISHLIST_NAMECARD_NAMES.has(key)){
@@ -469,6 +539,9 @@
   // owned base-copy general/PVP units are sent near the end.
   function getWishlistAutoBuildPriority(name, stage, breakthrough, unowned){
     const key = norm(name);
+    if(isOCollectionFrontName(name)) return stage === 2 ? (unowned ? 9.9 : 20) : Number.POSITIVE_INFINITY;
+    if(isLaplaceNamecardInO(name)) return breakthrough < 2 ? 7.95 : 18;
+    if(wallStatus === 'O' && key === norm(DELTA_NINJA_THIEF_NAME)) return unowned ? 7.7 : 18;
     if(key === norm(KILLER_WIFE_NAME)){
       const rank = getKillerWifePriority(unowned);
       return rank === 3 ? (unowned ? 3 : 13) : (rank === 6 ? 6 : 18);
@@ -486,14 +559,16 @@
     const isTreasureRequired = WISHLIST_TREASURE_REQUIRED_NAMES.has(key);
     const isPvp = PVP_WISHLIST_NAMES.has(key) || PVP_LOWEST_WISHLIST_NAMES.has(key);
     const isSoloRaid = SOLO_RAID_WISHLIST_NAMES.has(key);
-    const isNamecard = WISHLIST_NAMECARD_NAMES.has(key);
+    const isNamecard = WISHLIST_NAMECARD_NAMES.has(key) && !isOCollectionFrontName(name);
     const isGeneral = WISHLIST_GENERAL_NAMES.has(key);
-    const isCollection = WISHLIST_COLLECTION_NAMES.has(key) || !WISHLIST_TRACKED_NAMES.has(key);
+    const isCollection = isOCollectionFrontName(name) || WISHLIST_COLLECTION_NAMES.has(key) || !WISHLIST_TRACKED_NAMES.has(key);
 
     // Zwei and Julia are first-copy-tier targets until they have two breakthroughs.
     // Zwei is first, then Julia; only after both reach 2★ do ordinary namecard targets advance.
     if(WISHLIST_TWO_BREAKTHROUGH_NAMECARD_NAMES.has(key)){
-      if(breakthrough < 2) return key === norm('츠바이') ? 7 : 7.5;
+      if(breakthrough < 2) return wallStatus === 'O'
+          ? (key === norm('츠바이') ? 7.8 : 7.9)
+          : (key === norm('츠바이') ? 7 : 7.5);
       return 18;
     }
 
@@ -1300,13 +1375,13 @@
       '#wishlistHoverCard .wl-hover-card-meta{display:flex;flex-wrap:wrap;align-items:center;gap:5px}',
       '#wishlistHoverCard .wl-hover-card-chip{display:inline-flex;align-items:center;padding:3px 6px;border:1px solid rgba(158,180,210,.22);border-radius:999px;background:rgba(255,255,255,.07);color:#dbe6f5;font-size:10px;font-weight:800;line-height:1.2;white-space:nowrap}',
       '#wishlistHoverCard .wl-hover-card-chip.is-unowned{border-color:rgba(255,174,105,.4);background:rgba(168,85,24,.2);color:#ffd5aa}',
-      '#wishlistHoverCard.is-compact{width:auto;max-width:min(260px,calc(100vw - 20px));padding:9px 12px;border-radius:11px}',
+      '#wishlistHoverCard.is-compact{width:max-content;max-width:none;padding:9px 12px;border-radius:11px}',
       '#wishlistHoverCard.is-compact .wl-hover-card-image,#wishlistHoverCard.is-compact .wl-hover-card-company,#wishlistHoverCard.is-compact .wl-hover-card-meta{display:none}',
       '#wishlistHoverCard.is-compact .wl-hover-card-content{gap:0}',
-      '#wishlistHoverCard.is-compact .wl-hover-card-name{font-size:11px;line-height:1.45;max-width:230px}',
-      '#wishlistHoverCard.is-guidance{box-sizing:border-box;width:430px;max-width:min(430px,calc(100vw - 20px));min-height:84px;justify-content:center;padding:9px 12px;border:1px solid #cbd9e5;border-left:3px solid #59a3bb;border-radius:11px;background:linear-gradient(145deg,rgba(255,255,255,.99),rgba(237,244,249,.99));color:#34465a;box-shadow:0 8px 24px rgba(37,56,79,.20),inset 0 1px 0 rgba(255,255,255,.95);backdrop-filter:blur(10px)}',
+      '#wishlistHoverCard.is-compact .wl-hover-card-name{font-size:var(--wl-hover-font-size,11px);line-height:1.45;max-width:none;white-space:pre;overflow-wrap:normal;word-break:keep-all}',
+      '#wishlistHoverCard.is-guidance{box-sizing:border-box;width:max-content;max-width:none;min-height:0;justify-content:center;padding:9px 12px;border:1px solid #cbd9e5;border-left:3px solid #59a3bb;border-radius:11px;background:linear-gradient(145deg,rgba(255,255,255,.99),rgba(237,244,249,.99));color:#34465a;box-shadow:0 8px 24px rgba(37,56,79,.20),inset 0 1px 0 rgba(255,255,255,.95);backdrop-filter:blur(10px)}',
       '#wishlistHoverCard.is-guidance .wl-hover-card-content{width:100%;min-width:0}',
-      '#wishlistHoverCard.is-guidance .wl-hover-card-name{max-width:100%;color:#34465a!important;font-size:7px!important;font-weight:750;line-height:1.5;letter-spacing:0;white-space:pre-line;overflow-wrap:anywhere;text-shadow:none}',
+      '#wishlistHoverCard.is-guidance .wl-hover-card-name{max-width:none;color:#34465a!important;font-size:var(--wl-hover-font-size,11px)!important;font-weight:750;line-height:1.5;letter-spacing:0;white-space:pre;overflow-wrap:normal;word-break:keep-all;text-shadow:none}',
       'html.dark-theme #wishlistHoverCard.is-guidance{border-color:#3c526b;border-left-color:#58b8c5;background:linear-gradient(145deg,rgba(28,42,62,.99),rgba(15,24,39,.99));color:#e5eff9;box-shadow:0 10px 26px rgba(0,0,0,.36),inset 0 1px 0 rgba(255,255,255,.05)}',
       'html.dark-theme #wishlistHoverCard.is-guidance .wl-hover-card-name{color:#e5eff9!important}',
       '@media(prefers-reduced-motion:reduce){#wishlistHoverCard{transition:none}}',
@@ -1324,8 +1399,24 @@
       '#wishlistPanel .wl-select{position:absolute;inset:0;z-index:8;width:100%;height:100%;opacity:0;cursor:pointer}',
       '#wishlistPanel .wl-select-trigger{position:absolute;inset:0;z-index:8;width:100%;height:100%;margin:0;padding:0;border:0;border-radius:8px;background:transparent;cursor:pointer}',
       '#wishlistPanel .wl-tile.wl-photo-only{padding:0;border-color:#8a8a8a;background:#fff}',
+      '#wishlistPanel .wl-slot.is-namecard-recommend .wl-tile.wl-photo-only{border-color:#16ad51}',
+      '#wishlistPanel .wl-slot.is-collection-recommend .wl-tile.wl-photo-only{border-color:#df3e48}',
+      '#wishlistPanel .wl-slot.is-treasure-recommend .wl-tile.wl-photo-only{border-color:#f39428}',
+      '#wishlistPanel .wl-slot.is-special-recommend .wl-tile.wl-photo-only{border-color:#a65be9}',
       '#wishlistPanel .wl-slot.is-bonus-recruit .wl-tile{border:3px solid #00b84a;box-shadow:0 0 0 2px #e6ffed,0 0 0 5px rgba(0,184,74,.48),0 4px 11px rgba(0,120,45,.42),inset 0 1px 2px rgba(255,255,255,.96),inset 0 -2px 3px rgba(0,100,35,.14)}',
       '#wishlistPanel .wl-slot.is-road-to-villain .wl-tile{border:3px solid #e53935;box-shadow:0 0 0 2px #fff0f0,0 0 0 5px rgba(229,57,53,.5),0 4px 11px rgba(150,0,0,.38),inset 0 1px 2px rgba(255,255,255,.96),inset 0 -2px 3px rgba(130,0,0,.14)}',
+      '#wishlistPanel .wl-slot.is-namecard-recommend .wl-tile{border:3px solid #16ad51;box-shadow:0 0 0 2px #e9fff0,0 0 0 4px rgba(20,177,87,.58),0 4px 11px rgba(9,125,62,.27)}',
+      '#wishlistPanel .wl-slot.is-collection-recommend .wl-tile{border:3px solid #df3e48;box-shadow:0 0 0 2px #fff0f1,0 0 0 4px rgba(222,53,64,.55),0 4px 11px rgba(150,24,35,.28)}',
+      '#wishlistPanel .wl-slot.is-treasure-recommend .wl-tile{border:3px solid #f39428;box-shadow:0 0 0 2px #fff5e6,0 0 0 4px rgba(255,151,36,.62),0 4px 11px rgba(180,97,14,.33)}',
+      '#wishlistPanel .wl-slot.is-special-recommend .wl-tile{border:3px solid #a65be9;box-shadow:0 0 0 2px #f8ecff,0 0 0 4px rgba(164,82,230,.66),0 4px 11px rgba(111,40,170,.34)}',
+      'html.dark-theme #wishlistPanel .wl-slot.is-namecard-recommend .wl-tile{box-shadow:0 0 0 2px #122d25,0 0 0 4px rgba(48,223,119,.7),0 4px 11px rgba(0,0,0,.35)}',
+      'html.dark-theme #wishlistPanel .wl-slot.is-collection-recommend .wl-tile{box-shadow:0 0 0 2px #331f29,0 0 0 4px rgba(255,91,101,.7),0 4px 11px rgba(0,0,0,.35)}',
+      'html.dark-theme #wishlistPanel .wl-slot.is-treasure-recommend .wl-tile{box-shadow:0 0 0 2px #382719,0 0 0 4px rgba(255,173,65,.78),0 4px 11px rgba(0,0,0,.35)}',
+      'html.dark-theme #wishlistPanel .wl-slot.is-special-recommend .wl-tile{box-shadow:0 0 0 2px #33223f,0 0 0 4px rgba(195,118,255,.82),0 4px 11px rgba(0,0,0,.35)}',
+      '#wishlistHoverCard.is-namecard-recommend{border-color:#34c47b}',
+      '#wishlistHoverCard.is-collection-recommend{border-color:#f06c74}',
+      '#wishlistHoverCard.is-treasure-recommend{border-color:#f4ab49}',
+      '#wishlistHoverCard.is-special-recommend{border-color:#b978f5}',
       '#wishlistPanel .wl-tile.wl-photo-only:before,#wishlistPanel .wl-tile.wl-photo-only:after{display:none!important;content:none!important}',
       '#wishlistPanel .wl-picked-image{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;object-position:center;border-radius:7px}',
       '#wishlistPanel .wl-character-name-label{display:none;box-sizing:border-box;width:100%;margin-top:3px;padding:0 1px;color:#4a5565;font-size:9px;font-weight:800;line-height:1.2;text-align:center;overflow-wrap:anywhere;word-break:keep-all}',
@@ -1841,6 +1932,13 @@
     const name = picks[company][slot] || '';
     const isBonusRecruit = !!name && wallStatus === 'X' && WISHLIST_160_WALL_X_PRIORITY_NAMES.has(norm(name));
     const isRoadToVillain = !!name && wallStatus === 'X' && norm(name) === norm('드레이크');
+    const specialPriorityHint = company === PILGRIM_COMPANY ? '' : getWishlistSpecialPriorityHint(name);
+    const treasureNamecardHint = company === PILGRIM_COMPANY ? '' : getTreasureNamecardHint(name);
+    const recommendationHint = specialPriorityHint || treasureNamecardHint || getWishlistRecommendationHint(name,company);
+    const isNamecardRecommend = !specialPriorityHint && !treasureNamecardHint && recommendationHint.startsWith('명함 추천 캐릭터');
+    const isCollectionRecommend = !specialPriorityHint && !treasureNamecardHint && recommendationHint.startsWith('도감용');
+    const isTreasureRecommend = !specialPriorityHint && (treasureNamecardHint || recommendationHint === '애장품 보유캐릭터');
+    const isSpecialRecommend = !!specialPriorityHint;
     const unowned = !!name && isMarkedUnowned(name);
     const stage = getBreakthrough(name);
     let tile;
@@ -1861,9 +1959,11 @@
       tile = '<div class="wl-tile wl-empty-tile">' +
         '<div class="wl-empty-mark"><span class="wl-plus">＋</span></div></div>';
     }
-    const accessibleName = name ? name + (unowned ? ' · 미보유' : ' · ' + stage + '돌') : '빈 슬롯';
-    return '<article class="wl-slot' + (!name ? ' wl-slot-empty' : '') + (name ? ' has-character-name' : '') + (isBonusRecruit ? ' is-bonus-recruit' : '') + (isRoadToVillain ? ' is-road-to-villain' : '') + (unowned ? ' is-unowned' : '') + '" data-wl-slot="true" data-company="' + esc(company) + '"' +
+    const accessibleName = name ? name + (unowned ? ' · 미보유' : ' · ' + stage + '돌') + (recommendationHint ? ' · ' + recommendationHint : '') : '빈 슬롯';
+    return '<article class="wl-slot' + (!name ? ' wl-slot-empty' : '') + (name ? ' has-character-name' : '') + (isBonusRecruit ? ' is-bonus-recruit' : '') + (isRoadToVillain ? ' is-road-to-villain' : '') + (isNamecardRecommend ? ' is-namecard-recommend' : '') + (isCollectionRecommend ? ' is-collection-recommend' : '') + (isTreasureRecommend ? ' is-treasure-recommend' : '') + (isSpecialRecommend ? ' is-special-recommend' : '') + (unowned ? ' is-unowned' : '') + '" data-wl-slot="true" data-company="' + esc(company) + '"' +
       (name ? ' data-wl-hover-text="' + esc(name) + '"' : '') +
+      (specialPriorityHint ? ' data-wl-special-hint="' + esc(specialPriorityHint) + '"' : '') +
+      (recommendationHint ? ' tabindex="0"' : '') +
       ' aria-label="' + esc(accessibleName) + '">' +
       tile +
       (unowned ? '<span class="wl-photo-status">미보유</span>' : '') +
@@ -1927,8 +2027,17 @@
 
     // Keep slot hover hints minimal; the two guidance types get a smaller, UI-matched tooltip.
     card.classList.add('is-compact');
+    card.style.setProperty('--wl-hover-font-size','11px');
     const isGuidance = !!slot && (slot.classList.contains('is-bonus-recruit') || slot.classList.contains('is-road-to-villain'));
+    const isNamecardRecommend = !!slot && slot.classList.contains('is-namecard-recommend');
+    const isCollectionRecommend = !!slot && slot.classList.contains('is-collection-recommend');
+    const isTreasureRecommend = !!slot && slot.classList.contains('is-treasure-recommend');
+    const isSpecialRecommend = !!slot && slot.classList.contains('is-special-recommend');
     card.classList.toggle('is-guidance', isGuidance);
+    card.classList.toggle('is-namecard-recommend', isNamecardRecommend);
+    card.classList.toggle('is-collection-recommend', isCollectionRecommend);
+    card.classList.toggle('is-treasure-recommend', isTreasureRecommend);
+    card.classList.toggle('is-special-recommend', isSpecialRecommend);
     imageBox.replaceChildren();
     meta.replaceChildren();
     imageBox.style.display = 'none';
@@ -1942,10 +2051,18 @@
         nameLabel.textContent = '보너스 리크루트에 포함된 니케입니다.\n본인의 포인트 상황에 따라 제외 추천';
       }else if(isRoadToVillain){
         nameLabel.textContent = '로드 투 빌런 상시 이벤트로 2돌파 까지 획득 가능한 니케입니다.\n1회라도 직접 획득했다면 제외 추천';
+      }else if(isSpecialRecommend){
+        nameLabel.textContent = String(slot.getAttribute('data-wl-special-hint') || '');
+      }else if(isNamecardRecommend){
+        nameLabel.textContent = '명함 추천 캐릭터\n우선도가 높지 않지만\n명함정도는 챙겨놓는걸 추천합니다';
+      }else if(isCollectionRecommend){
+        nameLabel.textContent = '도감용\n현재는 활용도가 없는 캐릭터';
+      }else if(isTreasureRecommend){
+        nameLabel.textContent = getTreasureNamecardHint(name) || '애장품 보유캐릭터';
       }else{
         nameLabel.textContent = name;
       }
-      nameLabel.style.whiteSpace = (isBonusRecruit || isRoadToVillain) ? 'pre-line' : '';
+      nameLabel.style.whiteSpace = 'pre';
       companyLabel.textContent = '';
     }else{
       const text = String(target.getAttribute('data-wl-hover-text') || '').trim();
@@ -1957,12 +2074,18 @@
     hoverCardAnchor = target;
     card.setAttribute('aria-hidden','false');
     card.classList.add('is-visible');
+    // Keep authored lines only. Scale text slightly on narrow screens to fit the box.
+    const space = Math.max(90,window.innerWidth-20);
+    const naturalWidth = card.getBoundingClientRect().width;
+    if(naturalWidth > space){
+      card.style.setProperty('--wl-hover-font-size',(Math.max(5,11*(space-24)/Math.max(1,naturalWidth-24))).toFixed(2)+'px');
+    }
     positionWishlistHoverCard(target,card);
   }
 
   function hideWishlistHoverCard(){
     if(!hoverCard) return;
-    hoverCard.classList.remove('is-visible','is-compact','is-guidance');
+    hoverCard.classList.remove('is-visible','is-compact','is-guidance','is-namecard-recommend','is-collection-recommend','is-treasure-recommend','is-special-recommend');
     hoverCard.setAttribute('aria-hidden','true');
     hoverCardAnchor = null;
   }
@@ -2308,7 +2431,7 @@
           const name = String(row['이름'] || '').trim();
           const key = norm(name);
           const isTreasureRequired = WISHLIST_TREASURE_REQUIRED_NAMES.has(key);
-          const isCollection = WISHLIST_COLLECTION_NAMES.has(key) || !WISHLIST_TRACKED_NAMES.has(key);
+          const isCollection = isOCollectionFrontName(name) || WISHLIST_COLLECTION_NAMES.has(key) || !WISHLIST_TRACKED_NAMES.has(key);
           const favorite = isFavoriteCharacter(name);
           const unowned = isMarkedUnowned(name);
           const breakthrough = getBreakthrough(name);
