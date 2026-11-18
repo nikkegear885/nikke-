@@ -281,7 +281,7 @@
     }
     if(key === norm(KILLER_WIFE_NAME)){
       const rank = getKillerWifePriority(isMarkedUnowned(name));
-      if(rank === 3) return {rank:3,tierOrder:2,index:998}; // end of general tier
+      if(rank === 3) return {rank:3,tierOrder:2,index:wallStatus === 'X' ? 996 : 998}; // 160-wall X: before unowned Tactical Up Vesti (index 997)
       if(rank === 8) return {rank:8,tierOrder:6,index:2.5}; // immediately after Zwei
       return WISHLIST_PERFORMANCE_POSITION.get(key); // just before Delta in solo tier
     }
