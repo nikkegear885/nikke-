@@ -53,6 +53,9 @@
     return {responseOk:response.ok,payload:payload};
   }
 
+  var DEFAULT_REGION_OPTIONS = '<option value="">자동 확인 (보유 서버 조회)</option>' +
+    '<option value="81">일본 (JP)</option><option value="82">북미 (NA)</option>' +
+    '<option value="83">한국 (KR)</option><option value="84">글로벌</option><option value="85">동남아</option>';
   function regionLabel(areaId){
     return ({'81':'일본 (JP)','82':'북미 (NA)','83':'한국 (KR)','84':'글로벌 (Global)','85':'동남아 (SEA)'})[String(areaId)] || ('지역 ' + String(areaId));
   }
@@ -176,10 +179,10 @@
           '</div>' +
           '<div style="margin-top:6px;font-size:10px;color:#71828f;text-align:center">계정명은 우측 톱니 아이콘을 눌러 변경가능합니다</div>' +
           '<div class="bl-direct-note" style="margin-top:8px">공개 프로필 URL 동기화는 서버의 공용 서비스 세션이 정상일 때만 작동합니다.</div>' +
-          '<div class="bl-direct-region-picker" id="blDirectRegionPicker" hidden>' +
-            '<label class="bl-direct-region-label" for="blDirectRegionSelect">동기화할 NIKKE 지역 선택</label>' +
-            '<select class="bl-direct-region-select" id="blDirectRegionSelect"><option value="">지역 선택…</option></select>' +
-            '<div class="bl-direct-region-hint">같은 프로필에서 여러 지역의 로스터가 발견되었습니다. 실제로 플레이하는 지역을 선택해야 다른 서버의 보유·돌파·코강 정보가 섞이지 않습니다.</div>' +
+          '<div class="bl-direct-region-picker" id="blDirectRegionPicker">' +
+            '<label class="bl-direct-region-label" for="blDirectRegionSelect">서버 선택 (자동 확인 실패 시 직접 선택)</label>' +
+            '<select class="bl-direct-region-select" id="blDirectRegionSelect">'+DEFAULT_REGION_OPTIONS+'</select>' +
+            '<div class="bl-direct-region-hint">자동 조회가 실패해도 실제 플레이하는 서버를 직접 선택해 다시 시도할 수 있습니다. 외부 API의 공용 조회 계정이 차단된 경우 직접 선택도 실패할 수 있습니다.</div>' +
           '</div>' +
           '<div class="bl-direct-actions">' +
             '<button type="button" class="bl-direct-primary">동기화 시작</button>' +
@@ -270,11 +273,9 @@
     });
 
     overlay.querySelector('#blDirectUrl').addEventListener('input', function(){
-      var picker = overlay.querySelector('#blDirectRegionPicker');
       var select = overlay.querySelector('#blDirectRegionSelect');
       var primary = overlay.querySelector('.bl-direct-primary');
-      if(picker) picker.hidden = true;
-      if(select) select.innerHTML = '<option value="">지역 선택…</option>';
+      if(select) select.innerHTML = DEFAULT_REGION_OPTIONS;
       if(primary) primary.textContent = '동기화 시작';
     });
 
@@ -290,16 +291,8 @@
       var accounts=getAccounts();
       targetAccount=targetAccount||accounts[0]||'계정1';
       var selectedTargetAccount=targetAccount;
-      if(regionPicker&&!regionPicker.hidden){
-        var areaValue=regionSelect?String(regionSelect.value||'').trim():'';
-        if(!areaValue){
-          status.className='bl-direct-status error';
-          status.textContent='여러 지역에서 로스터가 발견되었습니다. 동기화할 지역을 먼저 선택해 주세요.';
-          if(regionSelect)regionSelect.focus();
-          return;
-        }
-        requestedAreaId=Number(areaValue);
-      }
+      var areaValue=regionSelect?String(regionSelect.value||'').trim():'';
+      if(areaValue) requestedAreaId=Number(areaValue);
       var url;
       try{url=validateProfileUrl(input.value.trim())}
       catch(error){status.className='bl-direct-status error';status.textContent=text(error&&error.message||error);return;}
@@ -323,8 +316,6 @@
         apply(payload,selectedTargetAccount);
         try{localStorage.setItem('nikke_bl_profile_url_'+encodeURIComponent(selectedTargetAccount),url)}catch(_){}
         if(requestedAreaId!==null)storePreferredRegion(selectedTargetAccount,url,payload.area_id);
-        if(regionPicker)regionPicker.hidden=true;
-        if(regionSelect)regionSelect.innerHTML='<option value="">지역 선택…</option>';
         primary.textContent='동기화 시작';
         status.className='bl-direct-status success';
         status.textContent='장비·스킬 동기화 완료 · '+regionLabel(payload.area_id)+' · '+payload.character_count+'명 반영'
@@ -343,8 +334,8 @@
               regionSelect.appendChild(opt);
             });
           }
-          if(regionPicker)regionPicker.hidden=false;
           primary.textContent='선택한 지역으로 동기화';
+          if(regionSelect) regionSelect.focus();
         }
         status.className='bl-direct-status error';
         status.textContent=text(error&&error.message||error||'외부 API 동기화에 실패했습니다. 기존 데이터는 유지됩니다.');
