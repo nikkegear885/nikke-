@@ -120,6 +120,7 @@
       '.bl-direct-status{margin-top:10px;min-height:18px;font-size:10px;line-height:1.5}',
       '.bl-direct-status.success{color:#2e8765}',
       '.bl-direct-status.error{color:#bd5e62}',
+       '.bl-direct-status.warning{color:#bb852b}',
       '.bl-direct-region-picker{margin-top:12px;padding:11px;border:1px solid #d8b46e;border-radius:9px;background:#fff8e9}',
       '.bl-direct-region-picker[hidden]{display:none!important}',
       'html.dark-theme .bl-direct-region-picker{border-color:#755a2e;background:#2a2114}',
@@ -317,9 +318,9 @@
         try{localStorage.setItem('nikke_bl_profile_url_'+encodeURIComponent(selectedTargetAccount),url)}catch(_){}
         if(requestedAreaId!==null)storePreferredRegion(selectedTargetAccount,url,payload.area_id);
         primary.textContent='동기화 시작';
-        status.className='bl-direct-status '+(payload.partial_identification?'error':'success');
+        status.className='bl-direct-status '+(payload.partial_identification?'warning':'success');
         status.textContent=(payload.partial_identification?'확인된 니케만 부분 동기화 완료':'장비·스킬 동기화 완료')+' · '+regionLabel(payload.area_id)+' · '+payload.character_count+'명 반영'
-          +(payload.skipped_character_count?' · 사이트 미등록 '+payload.skipped_character_count+'명 제외 ('+payload.skipped_character_names.slice(0,3).join(', ')+')':'')
+          +(payload.skipped_character_count?' · 사이트 미등록 '+payload.skipped_character_count+'명 제외 ('+payload.skipped_character_names.slice(0,20).join(', ')+')':'')
           +(payload.partial_identification?' · 식별 불가 '+payload.unresolved_character_count+'명은 기존 데이터 유지 (미갱신: '+(payload.unresolved_character_codes||[]).join(', ')+')':'')
           +' · 기존 싱크로·전초기지 레벨 유지';
       }catch(error){
