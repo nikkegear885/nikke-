@@ -314,6 +314,7 @@
         var apply=window.__NIKKE_GM_APPLY_SYNC__;
         if(typeof apply!=='function')throw new Error('사이트 계정 동기화 모듈을 찾지 못했습니다.');
         // All external pages and known-character options/skills are validated before writing.
+        payload.profile_url=url;
         apply(payload,selectedTargetAccount);
         try{localStorage.setItem('nikke_bl_profile_url_'+encodeURIComponent(selectedTargetAccount),url)}catch(_){}
         if(requestedAreaId!==null)storePreferredRegion(selectedTargetAccount,url,payload.area_id);
