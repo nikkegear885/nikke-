@@ -5002,6 +5002,9 @@ function applyBlablalinkSyncPayload(p,targetAccount){
   );
   const normalizeRosterName=name=>String(name??'').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
   const byName=new Map(targetData.map((r,i)=>[normalizeRosterName(r?.['이름']),i]));
+  // A partial external roster contains some unknown identities. Only the
+  // verified entries may be changed; unverified previous account data stays.
+  const partialExternal=p.sync_type==='scriptless_external' && p.partial_identification===true;
   if(p.sync_type==='scriptless_external'){
     // Validate all known-character details before writing to the active account.
     const rows=Array.isArray(p.updates)?p.updates:[];
@@ -5019,11 +5022,13 @@ function applyBlablalinkSyncPayload(p,targetAccount){
         throw new Error('외부 API의 오버로드 옵션 정보가 올바르지 않아 저장하지 않았습니다.');
     }
   }
-  // Previous recorded skills are cleared only after the complete payload passes validation.
-  // Existing legacy-sync semantics are preserved for the separate session-check flow.
-  for(const row of targetData){
-    if(!row||typeof row!=='object')continue;
-    for(const key of ['스킬1','스킬2','버스트스킬'])row[key]=null;
+  // A complete roster can clear stale skills globally. A partial roster must
+  // never clear skills for unidentified / not-returned characters.
+  if(!partialExternal){
+    for(const row of targetData){
+      if(!row||typeof row!=='object')continue;
+      for(const key of ['스킬1','스킬2','버스트스킬'])row[key]=null;
+    }
   }
   let matched=0,changed=0,skillDataCount=0,gearDataCount=0;
   const syncedIndices=new Set();
@@ -5131,6 +5136,22 @@ function applyBlablalinkSyncPayload(p,targetAccount){
   const syncedNames=new Set(
     rosterNames.map(name=>canonicalSyncCharacterName(name)).filter(Boolean)
   );
+  if(partialExternal){
+    // The missing identities may belong to already-synced characters.
+    // Preserve their prior ownership rather than falsely marking them unowned.
+    try{
+      const previous=JSON.parse(localStorage.getItem(accountStorageKey(ACCOUNT_SYNCED_OWNED_PREFIX,syncAccount))||'[]');
+      if(Array.isArray(previous))previous.forEach(name=>{
+        const canonical=canonicalSyncCharacterName(name);
+        if(canonical)syncedNames.add(canonical);
+      });
+    }catch(_){}
+    targetData.forEach(row=>{
+      if(row?.__nikkeSyncedOwned!==true)return;
+      const name=String(row['이름']??'').trim();
+      if(name)syncedNames.add(name);
+    });
+  }
   // Newer sync scripts send the authoritative codes of the entire owned roster.
   // Use them to distinguish Sakura (1012) and Sakura Suzuhara (3015) even if a
   // worker returns ambiguous display names in the ownedNames fallback list.
@@ -5138,8 +5159,10 @@ function applyBlablalinkSyncPayload(p,targetAccount){
     (Array.isArray(p.ownedCodes)?p.ownedCodes:[]).map(code=>String(code??'').trim()).filter(Boolean)
   );
   if(ownedCodes.size){
-    if(ownedCodes.has('1012'))syncedNames.add('사쿠라');else syncedNames.delete('사쿠라');
-    if(ownedCodes.has('3015'))syncedNames.add('스즈하라 사쿠라');else syncedNames.delete('스즈하라 사쿠라');
+    if(ownedCodes.has('1012'))syncedNames.add('사쿠라');
+    else if(!partialExternal)syncedNames.delete('사쿠라');
+    if(ownedCodes.has('3015'))syncedNames.add('스즈하라 사쿠라');
+    else if(!partialExternal)syncedNames.delete('스즈하라 사쿠라');
   }
   const syncedNameKeys=new Set([...syncedNames].map(normalizeRosterName));
   const isSyncedOwnedName=name=>syncedNames.has(String(name??'').trim())||syncedNameKeys.has(normalizeRosterName(name));
@@ -5148,6 +5171,7 @@ function applyBlablalinkSyncPayload(p,targetAccount){
   // 위시리스트가 별도의 오래된 로컬 보유현황을 기준으로 판정하지 않도록 합니다.
   targetData.forEach(row=>{
     const name=String(row?.['이름']??'').trim();
+    if(partialExternal && !isSyncedOwnedName(name))return;
     const owned=!!name&&isSyncedOwnedName(name);
     row.__nikkeSyncedOwned=owned;
     // A character absent from the authoritative synced roster is unowned; clear stale
@@ -5191,15 +5215,18 @@ function applyBlablalinkSyncPayload(p,targetAccount){
   const nextUnowned=new Set(
     [...preservedUnownedNames].filter(name=>!isSyncedOwnedName(name) && !preservedUnusedNames.has(name))
   );
-  targetData
-    .map(r=>String(r?.['이름']??'').trim())
-    .filter(Boolean)
-    .filter(name=>!isSyncedOwnedName(name))
-    .filter(name=>!preservedUnusedNames.has(name))
-    .forEach(name=>nextUnowned.add(name));
+  if(!partialExternal){
+    targetData
+      .map(r=>String(r?.['이름']??'').trim())
+      .filter(Boolean)
+      .filter(name=>!isSyncedOwnedName(name))
+      .filter(name=>!preservedUnusedNames.has(name))
+      .forEach(name=>nextUnowned.add(name));
+  }
   // 미사용 상태는 유지하되, 이번 동기화에서 실제 장비 응답을 받은 니케의 결과는 다시 초기화하지 않습니다.
   // 응답이 없는 미사용 니케에 한해서만 기존 동작대로 장비/육성 수치를 최저 상태로 초기화합니다.
   for(const name of nextUnused){
+    if(partialExternal)continue; // Unverified roster: do not reset unreturned characters.
     if(isSyncedOwnedName(name)) continue;
     const idx=byName.get(normalizeRosterName(name));
     if(idx==null)continue;
@@ -5244,7 +5271,8 @@ function applyBlablalinkSyncPayload(p,targetAccount){
   try{
     localStorage.setItem('nikkeBlSyncMeta_'+encodeURIComponent(syncAccount),JSON.stringify({
       at:new Date().toISOString(),account:syncAccount,nickname:p.nickname||'',areaId:p.areaId??p.area_id??null,
-      detailCount:p.detailCount||0,matched,changed,skillDataCount,gearDataCount,workerVersion:p.worker_version||'',unresolved:(p.unresolved||[]).length
+      detailCount:p.detailCount||0,matched,changed,skillDataCount,gearDataCount,workerVersion:p.worker_version||'',unresolved:(p.unresolved||[]).length,
+      partialIdentification:partialExternal,unresolvedCharacterCount:Number(p.unresolved_character_count)||0
     }));
   }catch(_){}
   // Reload the saved account snapshot just as a page refresh would, then
@@ -5284,7 +5312,7 @@ function applyBlablalinkSyncPayload(p,targetAccount){
   const skillMissingCount=targetData.filter(row=>row&&row.__nikkeSyncedOwned===true&&['스킬1','스킬2','버스트스킬'].some(key=>row[key]===null||row[key]===undefined||row[key]==='')).length;
   const syncEngineLabel=p.sync_type==='scriptless_external'?'외부 API (설치 불필요)':(p.worker_version?'Cloudflare Worker '+String(p.worker_version):(p.scriptVersion?'Tampermonkey v'+String(p.scriptVersion):'동기화 엔진 버전 미확인'));
   console.info('[NIKKE GM] Sync apply summary',{targetAccount:syncAccount,detailCount:p.detailCount||0,matched,gearDataCount,skillDataCount,skillMissingCount,changed,unresolved});
-  toast('BlablaLink 동기화 완료 · '+syncEngineLabel+' · '+matched+'명 반영 · 장비 데이터 '+gearDataCount+'명 · 스킬 데이터 '+skillDataCount+'명 · 스킬 미수신 '+skillMissingCount+'명 · '+changed+'개 변경'+(unresolved?' · 미매칭 '+unresolved+'명':''));
+  toast('BlablaLink 동기화 완료 · '+syncEngineLabel+' · '+matched+'명 반영 · 장비 데이터 '+gearDataCount+'명 · 스킬 데이터 '+skillDataCount+'명 · 스킬 미수신 '+skillMissingCount+'명 · '+changed+'개 변경'+(unresolved?' · 미매칭 '+unresolved+'명':'')+(partialExternal?' · 식별 불가 '+(Number(p.unresolved_character_count)||0)+'명 기존 정보 유지':''));
 }
 window.__NIKKE_GM_APPLY_SYNC__=applyBlablalinkSyncPayload;
 
