@@ -321,7 +321,7 @@
         status.className='bl-direct-status '+(payload.partial_identification?'warning':'success');
         status.textContent=(payload.partial_identification?'확인된 니케만 부분 동기화 완료':'장비·스킬 동기화 완료')+' · '+regionLabel(payload.area_id)+' · '+payload.character_count+'명 반영'
           +(payload.skipped_character_count?' · 사이트 미등록 '+payload.skipped_character_count+'명 제외 ('+payload.skipped_character_names.slice(0,20).join(', ')+')':'')
-          +(payload.partial_identification?' · 식별 불가 '+payload.unresolved_character_count+'명은 기존 데이터 유지 (미갱신: '+(payload.unresolved_character_codes||[]).join(', ')+')':'')
+          +(Number(payload.unresolved_character_count)>0?' · 식별 불가 '+payload.unresolved_character_count+'명은 기존 데이터 유지 (미갱신: '+(payload.unresolved_character_codes||[]).join(', ')+')':'')
           +' · 기존 싱크로·전초기지 레벨 유지';
       }catch(error){
         if(error&&error.code==='multiple_areas'&&Array.isArray(error.candidates)&&error.candidates.length>1){
